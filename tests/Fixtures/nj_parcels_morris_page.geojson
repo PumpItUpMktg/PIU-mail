@@ -1,0 +1,462 @@
+{
+ "_comment": "SYNTHETIC test fixture shaped like the NJOGIS Parcels/MOD-IV composite GeoJSON. Not real parcel data. Owner fields hold SENTINEL values so tests can prove they are never persisted.",
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": 1,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.48,
+       40.79
+      ],
+      [
+       -74.4796,
+       40.79
+      ],
+      [
+       -74.4796,
+       40.7904
+      ],
+      [
+       -74.48,
+       40.7904
+      ],
+      [
+       -74.48,
+       40.79
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "{11111111-1111-1111-1111-111111111111}",
+    "PAMS_PIN": "1427_10_1",
+    "PIN_NODUP": "1427_10_1",
+    "GIS_PIN": "1427_10_1",
+    "PCLBLOCK": "10",
+    "PCLLOT": "1",
+    "PROP_LOC": "12 NORTH MAIN STREET",
+    "ST_ADDRESS": "12 N Main St.",
+    "PROP_CLASS": "2",
+    "YR_CONSTR": "1988",
+    "BLDG_DESC": "2SFL2AG",
+    "CALC_ACRE": 0.3412,
+    "LAND_VAL": 210000,
+    "IMPRVT_VAL": 340000,
+    "NET_VALUE": 550000,
+    "LAST_YR_TX": "11234.56",
+    "SALE_PRICE": 615000,
+    "DEED_DATE": "190714",
+    "OBJECTID": 1
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 2,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.479,
+       40.79
+      ],
+      [
+       -74.4786,
+       40.79
+      ],
+      [
+       -74.4786,
+       40.7904
+      ],
+      [
+       -74.479,
+       40.7904
+      ],
+      [
+       -74.479,
+       40.79
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "{22222222-2222-2222-2222-222222222222}",
+    "PAMS_PIN": "1427_10_2",
+    "PIN_NODUP": "1427_10_2",
+    "GIS_PIN": "1427_10_2",
+    "PCLBLOCK": "10",
+    "PCLLOT": "2",
+    "PROP_LOC": "14 N MAIN ST",
+    "ST_ADDRESS": "PO BOX 999",
+    "PROP_CLASS": "2",
+    "YR_CONSTR": "0",
+    "BLDG_DESC": "1.5SSTL2AG",
+    "CALC_ACRE": 0.5,
+    "LAND_VAL": 200000,
+    "IMPRVT_VAL": 300000,
+    "NET_VALUE": 500000,
+    "LAST_YR_TX": "10000",
+    "SALE_PRICE": 1,
+    "DEED_DATE": "991231",
+    "OBJECTID": 2
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 3,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.478,
+       40.79
+      ],
+      [
+       -74.4776,
+       40.79
+      ],
+      [
+       -74.4776,
+       40.7904
+      ],
+      [
+       -74.478,
+       40.7904
+      ],
+      [
+       -74.478,
+       40.79
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "{33333333-3333-3333-3333-333333333333}",
+    "PAMS_PIN": "1427_10_3",
+    "PIN_NODUP": "1427_10_3",
+    "GIS_PIN": "1427_10_3",
+    "PCLBLOCK": "10",
+    "PCLLOT": "3",
+    "PROP_LOC": "16 N MAIN ST",
+    "ST_ADDRESS": "",
+    "PROP_CLASS": "2",
+    "YR_CONSTR": "1955",
+    "BLDG_DESC": "1SSSL",
+    "CALC_ACRE": 0.25,
+    "LAND_VAL": 180000,
+    "IMPRVT_VAL": 250000,
+    "NET_VALUE": 430000,
+    "LAST_YR_TX": "9000",
+    "SALE_PRICE": 0,
+    "DEED_DATE": "",
+    "OBJECTID": 3
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 4,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.48,
+       40.79
+      ],
+      [
+       -74.4796,
+       40.79
+      ],
+      [
+       -74.4796,
+       40.7904
+      ],
+      [
+       -74.48,
+       40.7904
+      ],
+      [
+       -74.48,
+       40.79
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "{11111111-1111-1111-1111-111111111111}",
+    "PAMS_PIN": "1427_10_1",
+    "PIN_NODUP": "1427_10_1",
+    "GIS_PIN": "1427_10_1",
+    "PCLBLOCK": "10",
+    "PCLLOT": "1",
+    "PROP_LOC": "12 N MAIN ST",
+    "ST_ADDRESS": "12 N MAIN ST",
+    "PROP_CLASS": "2",
+    "YR_CONSTR": "1988",
+    "BLDG_DESC": "2SFL2AG",
+    "CALC_ACRE": 0.3412,
+    "LAND_VAL": 1,
+    "IMPRVT_VAL": 1,
+    "NET_VALUE": 2,
+    "LAST_YR_TX": "1",
+    "SALE_PRICE": 5,
+    "DEED_DATE": "190714",
+    "OBJECTID": 4
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 5,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.477,
+       40.79
+      ],
+      [
+       -74.4766,
+       40.79
+      ],
+      [
+       -74.4766,
+       40.7904
+      ],
+      [
+       -74.477,
+       40.7904
+      ],
+      [
+       -74.477,
+       40.79
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "",
+    "PAMS_PIN": "1427_11_1",
+    "PIN_NODUP": "1427_11_1",
+    "GIS_PIN": "1427_11_1",
+    "PCLBLOCK": "11",
+    "PCLLOT": "1",
+    "PROP_LOC": "3 OAK  LANE",
+    "ST_ADDRESS": "3 Oak Ln",
+    "PROP_CLASS": "2",
+    "YR_CONSTR": "2031",
+    "BLDG_DESC": "NOT A CODE",
+    "CALC_ACRE": 1.0,
+    "LAND_VAL": null,
+    "IMPRVT_VAL": null,
+    "NET_VALUE": null,
+    "LAST_YR_TX": "",
+    "SALE_PRICE": null,
+    "DEED_DATE": "250229",
+    "OBJECTID": 5
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 6,
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.4,
+       40.85
+      ],
+      [
+       -74.3996,
+       40.85
+      ],
+      [
+       -74.3996,
+       40.8504
+      ],
+      [
+       -74.4,
+       40.8504
+      ],
+      [
+       -74.4,
+       40.85
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "PCL_MUN": "1427",
+    "PCLQCODE": "",
+    "CD_CODE": "1427",
+    "OLD_PROPID": "",
+    "COUNTY": "MORRIS",
+    "MUN_NAME": "Morris Township",
+    "PROP_USE": "",
+    "FAC_NAME": "",
+    "ADD_LOTS1": "",
+    "ADD_LOTS2": "",
+    "LAND_DESC": "0.34 AC",
+    "DWELL": 1,
+    "COMM_DWELL": 0,
+    "BLDG_CLASS": "25",
+    "SALES_CODE": "",
+    "DEED_BOOK": "1234",
+    "DEED_PAGE": "56",
+    "PCLLASTUPD": 1740787200000,
+    "PCL_PBDATE": 1751241600000,
+    "OWNER_NAME": "SENTINEL OWNER NAME",
+    "CITY_STATE": "SENTINELVILLE, NJ",
+    "ZIP_CODE": "07999-1234",
+    "ZIP5": "07999",
+    "ZIP_PLUS4": "1234",
+    "PCL_GUID": "{44444444-4444-4444-4444-444444444444}",
+    "PAMS_PIN": "1427_12_1",
+    "PIN_NODUP": "1427_12_1",
+    "GIS_PIN": "1427_12_1",
+    "PCLBLOCK": "12",
+    "PCLLOT": "1",
+    "PROP_LOC": "100 ROUTE 10",
+    "ST_ADDRESS": "1 CORPORATE PLAZA",
+    "PROP_CLASS": "4A",
+    "YR_CONSTR": "1970",
+    "BLDG_DESC": "1SBA",
+    "CALC_ACRE": 3.2,
+    "LAND_VAL": 900000,
+    "IMPRVT_VAL": 2000000,
+    "NET_VALUE": 2900000,
+    "LAST_YR_TX": "60000",
+    "SALE_PRICE": null,
+    "DEED_DATE": "851130",
+    "OBJECTID": 6
+   }
+  }
+ ]
+}

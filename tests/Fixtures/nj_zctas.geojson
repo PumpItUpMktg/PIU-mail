@@ -1,0 +1,72 @@
+{
+ "_comment": "SYNTHETIC ZCTA fixture covering the residential fixture parcels only.",
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "ZCTA5": "07960"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.49,
+       40.78
+      ],
+      [
+       -74.47,
+       40.78
+      ],
+      [
+       -74.47,
+       40.8
+      ],
+      [
+       -74.49,
+       40.8
+      ],
+      [
+       -74.49,
+       40.78
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "ZCTA5": "10001"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.41,
+       40.84
+      ],
+      [
+       -74.39,
+       40.84
+      ],
+      [
+       -74.39,
+       40.86
+      ],
+      [
+       -74.41,
+       40.86
+      ],
+      [
+       -74.41,
+       40.84
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}
