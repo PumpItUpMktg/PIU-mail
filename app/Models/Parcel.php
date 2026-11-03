@@ -56,10 +56,21 @@ class Parcel extends Model
      */
     public function scopeResidential(Builder $query, ?int $maxDwell = null): void
     {
+        self::applyResidential($query, $maxDwell);
+    }
+
+    /**
+     * The residential rule itself, usable on any builder (e.g. Filament's
+     * nested filter queries, where local scopes aren't resolvable).
+     *
+     * @param  Builder<Parcel>|\Illuminate\Database\Query\Builder  $query
+     */
+    public static function applyResidential($query, ?int $maxDwell = null): void
+    {
         $maxDwell ??= (int) config('piu.parcels.residential_max_dwell', 1);
 
         $query->where('prop_class', '2')
-            ->where(fn (Builder $q) => $q->whereNull('dwell_units')->orWhere('dwell_units', '<=', $maxDwell));
+            ->where(fn ($q) => $q->whereNull('dwell_units')->orWhere('dwell_units', '<=', $maxDwell));
     }
 
     /**

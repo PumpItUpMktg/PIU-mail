@@ -1,6 +1,7 @@
 <?php
 
 use App\Parcels\Source\ArcGisNjParcelSource;
+use App\Parcels\Source\SourceRequestException;
 use Illuminate\Support\Facades\Http;
 
 test('pages the FeatureServer with the expected query parameters', function () {
@@ -24,5 +25,5 @@ test('ArcGIS error envelopes become exceptions', function () {
     Http::fake(['*' => Http::response(['error' => ['code' => 400, 'message' => 'Invalid query']])]);
 
     expect(fn () => (new ArcGisNjParcelSource('https://example.test/FeatureServer/0'))->count('MORRIS'))
-        ->toThrow(\App\Parcels\Source\SourceRequestException::class, 'ArcGIS error 400');
+        ->toThrow(SourceRequestException::class, 'ArcGIS error 400');
 });

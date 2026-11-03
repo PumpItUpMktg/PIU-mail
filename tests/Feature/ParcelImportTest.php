@@ -2,17 +2,22 @@
 
 use App\Enums\CountyStatus;
 use App\Enums\ImportStatus;
+use App\Jobs\FinalizeCountyImport;
 use App\Jobs\ImportParcelPage;
 use App\Models\County;
 use App\Models\ImportReport;
 use App\Models\Parcel;
+use App\Parcels\ParcelImporter;
 use App\Parcels\Source\ArcGisNjParcelSource;
 use App\Parcels\Source\NjParcelSource;
+use App\Parcels\Source\SourcePage;
+use App\Parcels\Source\SourceRequestException;
 use App\Parcels\ZctaLoader;
 use Database\Seeders\CountySeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Tests\Support\FakeNjParcelSource;
 
 beforeEach(function () {
@@ -114,7 +119,7 @@ test('a retried page updates rather than counting duplicates', function () {
     importMorris();
     $report = ImportReport::sole();
 
-    (new ImportParcelPage($report->id, 'MORRIS', 0))->handle(app(\App\Parcels\ParcelImporter::class));
+    (new ImportParcelPage($report->id, 'MORRIS', 0))->handle(app(ParcelImporter::class));
 
     expect(Parcel::count())->toBe(5)
         ->and($report->pages()->where('offset', 0)->first()->stats['updated'])->toBe(5);
@@ -157,7 +162,7 @@ test('owner fields are never persisted anywhere', function () {
         expect(array_intersect(array_map('strtoupper', array_keys($p->source_attributes)), $ownerKeys))->toBe([]);
     }
 
-    $columns = array_map('strtoupper', \Illuminate\Support\Facades\Schema::getColumnListing('parcels'));
+    $columns = array_map('strtoupper', Schema::getColumnListing('parcels'));
     expect(array_intersect($columns, $ownerKeys))->toBe([]);
 
     // Scan every table's full text for the planted sentinel values.
@@ -200,7 +205,7 @@ test('source HTTP errors never echo the response body', function () {
     try {
         $source->count('MORRIS');
         $this->fail('expected exception');
-    } catch (\App\Parcels\Source\SourceRequestException $e) {
+    } catch (SourceRequestException $e) {
         expect($e->getMessage())->toContain('HTTP 500')->not->toContain('SENTINEL');
     }
 });
@@ -219,21 +224,21 @@ test('a failing page marks only that county failed', function () {
     // MORRIS: the source is down; the queue exhausts retries and calls failed().
     $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
     {
-        public function page(string $county, int $offset, int $limit): \App\Parcels\Source\SourcePage
+        public function page(string $county, int $offset, int $limit): SourcePage
         {
-            throw new \App\Parcels\Source\SourceRequestException('NJ parcel source page: HTTP 503');
+            throw new SourceRequestException('NJ parcel source page: HTTP 503');
         }
     });
     try {
         app()->call([$jobs['MORRIS'], 'handle']);
-    } catch (\App\Parcels\Source\SourceRequestException $e) {
+    } catch (SourceRequestException $e) {
         $jobs['MORRIS']->failed($e);
     }
 
     // SUSSEX: its own chain carries on.
     $this->app->instance(NjParcelSource::class, $this->source);
     app()->call([$jobs['SUSSEX'], 'handle']);
-    app()->call([new \App\Jobs\FinalizeCountyImport($jobs['SUSSEX']->reportId), 'handle']);
+    app()->call([new FinalizeCountyImport($jobs['SUSSEX']->reportId), 'handle']);
 
     expect(County::where('name', 'MORRIS')->first()->status)->toBe(CountyStatus::Failed)
         ->and(County::where('name', 'MORRIS')->value('last_error'))->toContain('HTTP 503')

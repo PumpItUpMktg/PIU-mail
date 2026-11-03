@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Filament\Resources\Tenants\Tables;
+
+use Filament\Actions\EditAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+
+class TenantsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('slug'),
+                TextColumn::make('brands_count')->counts('brands')->label('Brands'),
+                TextColumn::make('users_count')->counts('users')->label('Users'),
+                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->recordActions([EditAction::make()]);
+    }
+}

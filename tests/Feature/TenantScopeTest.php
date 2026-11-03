@@ -3,6 +3,7 @@
 use App\Models\Brand;
 use App\Models\Tenant;
 use App\Support\CurrentTenant;
+use Database\Seeders\TenantSeeder;
 
 beforeEach(function () {
     $this->a = Tenant::factory()->create();
@@ -49,7 +50,7 @@ test('tenant_id is auto-filled on create from the current tenant', function () {
 });
 
 test('seeded tenant has its three brands', function () {
-    $this->seed(\Database\Seeders\TenantSeeder::class);
+    $this->seed(TenantSeeder::class);
     $piu = Tenant::where('slug', 'pump-it-up-marketing')->first();
     app(CurrentTenant::class)->set($piu->id);
 

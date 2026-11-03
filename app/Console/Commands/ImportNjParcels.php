@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\County;
+use App\Parcels\PageStats;
 use App\Parcels\ParcelImporter;
 use App\Parcels\ParcelMapper;
-use App\Parcels\PageStats;
 use App\Parcels\Source\NjParcelSource;
 use Illuminate\Console\Command;
 use Throwable;

@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Enums\CountyStatus;
 use App\Models\County;
 use App\Parcels\ParcelImporter;
-use App\Parcels\SourceValues;
 use App\Parcels\Source\NjParcelSource;
+use App\Parcels\SourceValues;
 use Illuminate\Console\Command;
 use Throwable;
 

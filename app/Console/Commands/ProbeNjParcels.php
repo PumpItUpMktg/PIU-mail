@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Parcels\OwnerFields;
-use App\Parcels\SourceValues;
 use App\Parcels\Source\NjParcelSource;
+use App\Parcels\SourceValues;
 use Illuminate\Console\Command;
 use Throwable;
 
