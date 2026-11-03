@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\DatabaseGuard;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -14,6 +15,13 @@ class CheckPostgis extends Command
 
     public function handle(): int
     {
+        $name = (string) config('database.default');
+        if ($problem = DatabaseGuard::problem($name, (array) config("database.connections.{$name}", []))) {
+            $this->error('PostGIS check failed: '.$problem);
+
+            return self::FAILURE;
+        }
+
         try {
             $installed = DB::selectOne("SELECT extversion FROM pg_extension WHERE extname = 'postgis'");
             if ($installed === null) {
