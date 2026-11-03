@@ -93,6 +93,14 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
 | Style | Pint |
 | Hosting | Laravel Cloud |
 
+## Database guard
+
+There is **no SQLite fallback**. `config/database.php` defaults to `pgsql`
+with no localhost host default, and `App\Support\DatabaseGuard` runs whenever
+a connection opens: a non-Postgres driver, or no `DB_HOST`/`DB_URL` (e.g. no
+database attached in Laravel Cloud), stops with a plain-English
+`DatabaseNotConfiguredException`. `piu:check-postgis` reports the same message.
+
 ## Tenancy pattern
 
 - `App\Models\Concerns\BelongsToTenant` adds `TenantScope` and fills
