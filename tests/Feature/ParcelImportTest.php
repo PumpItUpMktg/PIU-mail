@@ -127,7 +127,7 @@ test('duplicates across pages are logged, not failed', function () {
     $report = ImportReport::sole();
     expect($report->status)->toBe(ImportStatus::Completed)
         ->and($report->duplicates)->toBe(1)
-        ->and($report->pages()->count())->toBe(3)
+        ->and($report->pages()->count())->toBe(4) // 3 full pages + the empty one that ends the chain
         ->and(Parcel::count())->toBe(5);
 });
 

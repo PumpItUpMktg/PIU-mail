@@ -3,6 +3,7 @@
 namespace App\Parcels;
 
 use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 
 /**
  * Pure value sanitizers for MOD-IV / parcel source fields.
@@ -83,7 +84,11 @@ final class SourceValues
 
         $s = trim((string) $value);
         foreach (['Y-m-d', 'm/d/Y', 'Ymd', 'Y-m-d H:i:s', 'Y-m-d\TH:i:s'] as $format) {
-            $d = CarbonImmutable::createFromFormat('!'.$format, $s, 'UTC');
+            try {
+                $d = CarbonImmutable::createFromFormat('!'.$format, $s, 'UTC');
+            } catch (InvalidFormatException) {
+                continue;
+            }
             if ($d !== null && $d->format($format) === $s) {
                 return $d->startOfDay();
             }
