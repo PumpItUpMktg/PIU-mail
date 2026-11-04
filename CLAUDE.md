@@ -73,10 +73,43 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
 - `deed_date` source is **YYMMDD** (reverse of MOD-IV's usual order); century
   pivot = most recent date not in the future.
 - `yr_constr` is null for 0 or anything outside 1700..current year.
-- `BLDG_DESC` is decoded by `BldgDescDecoder` (`{stories}S{exterior}{style}{garage}`,
-  longest-match exterior codes). **Never guess**: undecodable → decoded
-  columns null, `bldg_desc_raw` kept. `BLDG_CLASS` stays raw (no official
-  decode table located).
+- `BLDG_DESC` is decoded by `BldgDescDecoder` (`{stories}S{exterior}{style}{garage}`).
+  Real assessor data is loose (`1SF`, `2SF G2`, `2SF-L-2AG`, `1S F G1`), so
+  separators are tolerated and style/garage are optional; stories + exterior
+  are required. **Never guess**: only documented codes decode (garage only as
+  `{n}AG`/`{n}UG`/`AG`/`UG`); `G1`/`G2`, `2CG`, `2BG`, `X`, `OB`, `POOL`, `COL`
+  etc. stay undecoded (counted as `unknownTokens`), and `bldg_desc_raw` is
+  always kept. After changing the decoder run `piu:redecode-bldg-desc` (no
+  re-import). `BLDG_CLASS` stays raw (no official decode table located).
+- **Style is usually absent in Morris** (most homes are just `1SF`/`2SF`), so
+  lookalike matching (relay 02) must not depend on style alone.
+- `centroid` and `site_zip` are set by the `parcels_set_derived` trigger as a
+  row is written. Never add follow-up `UPDATE parcels` passes: each one leaves
+  a dead copy of every row (Morris measured 744 MB bloated vs 359 MB compact).
+- `PCL_PBDATE` / `PCLLASTUPD` before 1900 are junk in the source (years like
+  0144, 1899-12-30) and are stored as null.
+
+## Live source facts (probed 2026-11-04)
+
+- Layer `Parcels_Composite_NJ_WM/FeatureServer/0` (`Cad_parcel_mod4`),
+  maxRecordCount 2000, objectIdField `OBJECTID`. Every expected field is
+  present; extras: `OBJECTID`, `SHAPE__AREA`, `SHAPE__LENGTH`.
+- `OWNER_NAME` is empty for every parcel (Daniel's Law). `ST_ADDRESS` is
+  ~100% populated, so `owner_occupied` works (Morris: 137,246 true / 40,281
+  false / 6 null).
+- 3,481,240 parcels statewide; **403,260 have a blank `COUNTY` and none of
+  them are class 2**, so the per-county import skipping them loses no homes.
+- Each county has a single `PCL_PBDATE` (Union oldest: 2023-10-03).
+- Morris: 177,533 parcels (152,289 class 2), 359 MB compact (~2.1 KB/row,
+  geometry ~300 B, `source_attributes` ~960 B) → ~6.1 GB statewide.
+
+## Laravel Cloud notes
+
+- Queue and cache run on the **database** driver in production (no Redis
+  attached). `retry_after` defaults to 1900s for database and redis queues so
+  long import jobs are never re-run while still running.
+- The queue worker needs `--timeout=1800`, and the app compute must not
+  hibernate, or queued imports sit unprocessed.
 
 ## Stack
 
@@ -92,6 +125,14 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
 | Tests | Pest, against **real PostGIS** (no SQLite) |
 | Style | Pint |
 | Hosting | Laravel Cloud |
+
+## Database guard
+
+There is **no SQLite fallback**. `config/database.php` defaults to `pgsql`
+with no localhost host default, and `App\Support\DatabaseGuard` runs whenever
+a connection opens: a non-Postgres driver, or no `DB_HOST`/`DB_URL` (e.g. no
+database attached in Laravel Cloud), stops with a plain-English
+`DatabaseNotConfiguredException`. `piu:check-postgis` reports the same message.
 
 ## Tenancy pattern
 
@@ -117,6 +158,7 @@ php artisan piu:import-nj-parcels --county=MORRIS [--dry-run]
 php artisan piu:import-nj-parcels      # all 21 counties, one job chain each
 php artisan piu:check-nj-parcels-freshness   # scheduled weekly
 php artisan piu:parcel-stats --county=MORRIS --sample-bldg=60 --statewide-rows=N
+php artisan piu:redecode-bldg-desc [--county=MORRIS]   # after decoder changes
 
 ./vendor/bin/pest
 ./vendor/bin/pint

@@ -26,12 +26,19 @@ class ParcelStats extends Command
         $this->table(['PROP_CLASS', 'Rows'], $base()->selectRaw("coalesce(prop_class, '(none)') AS c, count(*) AS n")
             ->groupBy('c')->orderBy('c')->get()->map(fn ($r) => [$r->c, number_format($r->n)])->all());
 
-        $present = $base()->whereNotNull('bldg_desc_raw')->count();
-        $decoded = $base()->whereNotNull('style_code')->count();
-        $this->line(sprintf('BLDG_DESC decode: %d of %d (%s%%)', $decoded, $present, $present ? round($decoded / $present * 100, 2) : 'n/a'));
+        foreach (['All classes' => false, 'Residential (class 2)' => true] as $label => $residentialOnly) {
+            $q = fn () => $base()->whereNotNull('bldg_desc_raw')->when($residentialOnly, fn ($q) => $q->where('prop_class', '2'));
+            $present = $q()->count();
+            $pct = fn (int $n) => $present ? round($n / $present * 100, 1).'%' : 'n/a';
+            $exterior = $q()->whereNotNull('exterior_code')->count();
+            $style = $q()->whereNotNull('style_code')->count();
+            $garage = $q()->whereNotNull('garage_type')->count();
+            $this->line(sprintf('BLDG_DESC, %s: %d present | stories+exterior %d (%s) | style %d (%s) | garage %d (%s)',
+                $label, $present, $exterior, $pct($exterior), $style, $pct($style), $garage, $pct($garage)));
+        }
 
-        $this->line('Top undecoded BLDG_DESC values:');
-        $this->table(['BLDG_DESC', 'Rows'], $base()->whereNotNull('bldg_desc_raw')->whereNull('style_code')
+        $this->line('Top BLDG_DESC values with no decode at all:');
+        $this->table(['BLDG_DESC', 'Rows'], $base()->whereNotNull('bldg_desc_raw')->whereNull('exterior_code')
             ->selectRaw('bldg_desc_raw AS v, count(*) AS n')->groupBy('v')->orderByDesc('n')->limit(25)->get()
             ->map(fn ($r) => [$r->v, $r->n])->all());
 

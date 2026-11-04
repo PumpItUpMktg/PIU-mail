@@ -16,7 +16,11 @@ final class ZctaJoiner
         return DB::table('zctas')->exists();
     }
 
-    /** Fills site_zip for one county; returns the count left without a ZIP. */
+    /**
+     * Fills site_zip for parcels of one county that don't have one yet (the
+     * insert trigger normally sets it; this covers rows written before the
+     * ZCTAs were loaded). Returns the count left without a ZIP.
+     */
     public function assignCounty(string $county): int
     {
         DB::update(<<<'SQL'
@@ -27,7 +31,7 @@ final class ZctaJoiner
                 ORDER BY z.zcta5
                 LIMIT 1
             )
-            WHERE p.county = ? AND p.centroid IS NOT NULL
+            WHERE p.county = ? AND p.centroid IS NOT NULL AND p.site_zip IS NULL
             SQL, [$county]);
 
         return DB::table('parcels')->where('county', $county)->whereNull('site_zip')->count();

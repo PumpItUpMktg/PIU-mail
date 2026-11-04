@@ -120,13 +120,8 @@ final class ParcelUpserter
 
         $returned = DB::select($sql, $bindings);
 
-        $ids = array_map(fn ($r) => $r->id, $returned);
-        if ($ids !== []) {
-            DB::update(
-                'UPDATE parcels SET centroid = CASE WHEN geom IS NULL THEN NULL ELSE ST_Centroid(geom) END WHERE id = ANY(?::text[])',
-                ['{'.implode(',', $ids).'}'],
-            );
-        }
+        // centroid and site_zip are set by the parcels_set_derived trigger as
+        // the row is written: no follow-up UPDATE, so no dead row copies.
 
         $inserted = count(array_filter($returned, fn ($r) => (bool) $r->inserted));
 

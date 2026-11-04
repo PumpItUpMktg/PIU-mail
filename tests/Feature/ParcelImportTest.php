@@ -273,3 +273,51 @@ test('dry run writes nothing', function () {
 test('unknown county is rejected', function () {
     $this->artisan('piu:import-nj-parcels', ['--county' => ['ATLANTIS']])->assertFailed();
 });
+
+test('centroid and site_zip are set as rows are written, with no follow-up UPDATE', function () {
+    $updates = [];
+    DB::listen(function ($q) use (&$updates) {
+        if (preg_match('/^\s*update\s+"?parcels"?/i', $q->sql)) {
+            $updates[] = $q->sql;
+        }
+    });
+
+    importMorris();
+
+    // The only parcels UPDATE allowed is the finalize fallback for rows still
+    // missing a ZIP (here: the one parcel outside every NJ ZCTA).
+    expect(array_filter($updates, fn ($sql) => ! str_contains($sql, 'site_zip IS NULL')))->toBe([])
+        ->and(Parcel::whereNull('centroid')->count())->toBe(0)
+        ->and(Parcel::where('prop_class', '2')->whereNull('site_zip')->count())->toBe(0);
+});
+
+test('parcels written before ZCTAs are loaded get their ZIP at finalize', function () {
+    DB::table('zctas')->delete();
+    importMorris();
+    expect(Parcel::whereNotNull('site_zip')->count())->toBe(0);
+
+    app(ZctaLoader::class)->fromFile(fixturePath('nj_zctas.geojson'));
+    importMorris();
+
+    expect(Parcel::where('prop_class', '2')->whereNull('site_zip')->count())->toBe(0);
+});
+
+test('piu:redecode-bldg-desc applies the current decoder without re-importing', function () {
+    importMorris();
+    $p = Parcel::where('pams_pin', '1427_11_1')->first();
+    DB::table('parcels')->where('id', $p->id)->update(['bldg_desc_raw' => '2SF-L-2AG']);
+
+    $this->artisan('piu:redecode-bldg-desc', ['--county' => 'morris'])->assertSuccessful();
+
+    $p->refresh();
+    expect($p->style)->toBe('Colonial')
+        ->and($p->exterior)->toBe('Frame')
+        ->and($p->garage_cars)->toBe(2)
+        ->and($p->garage_type?->value)->toBe('attached');
+});
+
+test('summary shows a partial decode without inventing a style', function () {
+    $p = new Parcel(['yr_constr' => 1962, 'stories' => 1.0, 'exterior' => 'Frame', 'style' => null, 'calc_acre' => 0.5, 'owner_occupied' => false]);
+
+    expect($p->summary())->toBe('Built 1962 · 1-story frame · 0.50 ac · Not owner-occupied');
+});

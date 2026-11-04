@@ -84,12 +84,12 @@ class Parcel extends Model
             $parts[] = 'Built '.$this->yr_constr;
         }
 
-        if ($this->stories !== null && $this->exterior !== null && $this->style !== null) {
-            $parts[] = sprintf('%s-story %s %s', DecodedBldgDesc::formatStories($this->stories), strtolower($this->exterior), $this->style);
+        if ($this->stories !== null && $this->exterior !== null) {
+            $parts[] = DecodedBldgDesc::building($this->stories, $this->exterior, $this->style);
         }
 
-        if ($this->garage_cars !== null && $this->garage_type !== null) {
-            $parts[] = sprintf('%d-car %s garage', $this->garage_cars, $this->garage_type->value);
+        if ($garage = DecodedBldgDesc::garage($this->garage_cars, $this->garage_type)) {
+            $parts[] = $garage;
         }
 
         if ($this->calc_acre !== null) {
