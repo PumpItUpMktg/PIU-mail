@@ -56,16 +56,17 @@ final readonly class DecodedBldgDesc
         return trim(sprintf('%s-story %s %s', self::formatStories($stories), strtolower($exterior), $style ?? ''));
     }
 
-    /** "2-car attached garage", or "attached garage" when no count is stated. */
+    /** "2-car attached garage", "attached garage" (no count), "2-car garage" (attachment not stated). */
     public static function garage(?int $cars, ?GarageType $type): ?string
     {
         if ($type === null) {
             return null;
         }
 
-        return $cars === null
-            ? sprintf('%s garage', $type->value)
-            : sprintf('%d-car %s garage', $cars, $type->value);
+        // Attachment not stated (G / G2) => "2-car garage" / "garage".
+        $kind = $type === GarageType::Unknown ? 'garage' : $type->value.' garage';
+
+        return $cars === null ? $kind : sprintf('%d-car %s', $cars, $kind);
     }
 
     public static function formatStories(float $stories): string

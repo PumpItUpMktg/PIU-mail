@@ -15,8 +15,9 @@ use App\Enums\GarageType;
  *
  *  - stories + exterior are required; without both the result is null.
  *  - style: a documented style code attached to the exterior or standing alone.
- *  - garage: {n}AG / {n}UG, or bare AG / UG (type known, count not stated).
- *  - anything else (G2, 2CG, 2BG, X, OB, POOL, COL, ...) is left undecoded
+ *  - garage: {n}AG / {n}UG, or bare AG / UG (type known, count not stated);
+ *    G{n} / G = n-car garage / a garage, attachment unknown (owner-confirmed).
+ *  - anything else (G2X, 2CG, 2BG, X, OB, POOL, COL, ...) is left undecoded
  *    and counted in unknownTokens; the raw value is always kept.
  *
  * Exterior codes overlap (S / SS / ST), so each candidate is tried and the
@@ -58,7 +59,7 @@ final class BldgDescDecoder
         '3' => 'Tri-level',
     ];
 
-    private const SEP = '[\s\-\/]';
+    private const SEP = '[\s\-\/;,]';
 
     public function decode(?string $raw): ?DecodedBldgDesc
     {
@@ -150,6 +151,13 @@ final class BldgDescDecoder
 
                     continue;
                 }
+            } elseif ($type === null && preg_match('/^G(\d{1,2})?$/', $token, $g)) {
+                // Owner-confirmed (2026-11-04): G{n} = n-car garage, G = a
+                // garage; attachment not stated. G{n}X etc. stay undecoded.
+                $cars = isset($g[1]) && $g[1] !== '' ? (int) $g[1] : null;
+                $type = GarageType::Unknown;
+
+                continue;
             } elseif ($style === null && strlen($token) === 1 && array_key_exists($token, self::STYLES)) {
                 $style = $token;
 
