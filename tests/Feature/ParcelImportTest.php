@@ -321,3 +321,21 @@ test('summary shows a partial decode without inventing a style', function () {
 
     expect($p->summary())->toBe('Built 1962 · 1-story frame · 0.50 ac · Not owner-occupied');
 });
+
+test('piu:redecode-bldg-desc runs one set-based UPDATE per county, not one per code', function () {
+    importMorris();
+    DB::table('parcels')->update(['style' => null, 'style_code' => null, 'exterior' => null, 'exterior_code' => null]);
+
+    $updates = 0;
+    DB::listen(function ($q) use (&$updates) {
+        if (preg_match('/^\s*update\s+"?parcels"?/i', $q->sql)) {
+            $updates++;
+        }
+    });
+
+    $this->artisan('piu:redecode-bldg-desc')->assertSuccessful();
+
+    expect($updates)->toBe(1) // fixture has a single county
+        ->and(Parcel::where('pams_pin', '1427_10_1')->value('style'))->toBe('Colonial')
+        ->and(Parcel::where('pams_pin', '1427_10_2')->value('exterior'))->toBe('Stone');
+});
