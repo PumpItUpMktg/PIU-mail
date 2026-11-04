@@ -65,9 +65,17 @@ final class SourceValues
 
     /**
      * ArcGIS date fields arrive as epoch milliseconds; text dates are accepted
-     * in a few common formats. Returns null when unparseable.
+     * in a few common formats. Returns null when unparseable, and for junk
+     * values before 1900 (the live data has years like 0144 and 1899-12-30).
      */
     public static function sourceDate(mixed $value): ?CarbonImmutable
+    {
+        $date = self::parseSourceDate($value);
+
+        return $date !== null && $date->year >= 1900 ? $date : null;
+    }
+
+    private static function parseSourceDate(mixed $value): ?CarbonImmutable
     {
         if ($value === null || $value === '') {
             return null;

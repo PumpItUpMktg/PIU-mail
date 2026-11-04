@@ -9,10 +9,18 @@ use App\Enums\GarageType;
  *
  *   1.5SSTL2AG  => 1.5 stories, ST stone, L Colonial, 2-car attached garage
  *
- * The codes overlap (S = stories suffix, Stucco, and Split level; ST/SS start
- * with S), so exterior codes are tried longest-first, falling back to a shorter
- * code only when the longer one leaves an unparseable remainder. Anything that
- * does not parse completely returns null: we never guess a decode.
+ * Real assessor data writes this loosely, so the decoder tolerates spaces,
+ * dashes and slashes between parts ("1S F", "2SF-L-2AG", "2SF L AG") and
+ * treats style and garage as optional. It still decodes ONLY documented codes:
+ *
+ *  - stories + exterior are required; without both the result is null.
+ *  - style: a documented style code attached to the exterior or standing alone.
+ *  - garage: {n}AG / {n}UG, or bare AG / UG (type known, count not stated).
+ *  - anything else (G2, 2CG, 2BG, X, OB, POOL, COL, ...) is left undecoded
+ *    and counted in unknownTokens; the raw value is always kept.
+ *
+ * Exterior codes overlap (S / SS / ST), so each candidate is tried and the
+ * parse that leaves the fewest unknown parts wins, longest code on a tie.
  */
 final class BldgDescDecoder
 {
@@ -50,15 +58,17 @@ final class BldgDescDecoder
         '3' => 'Tri-level',
     ];
 
+    private const SEP = '[\s\-\/]';
+
     public function decode(?string $raw): ?DecodedBldgDesc
     {
         if ($raw === null) {
             return null;
         }
 
-        $code = strtoupper((string) preg_replace('/\s+/', '', $raw));
+        $code = strtoupper(trim((string) preg_replace('/\s+/', ' ', $raw)));
 
-        if (! preg_match('/^(\d+(?:\.\d+)?|\.\d+)S(.+)$/', $code, $m)) {
+        if (! preg_match('/^(\d+(?:\.\d+)?|\.\d+)\s*S(.*)$/', $code, $m)) {
             return null;
         }
 
@@ -67,61 +77,98 @@ final class BldgDescDecoder
             return null;
         }
 
-        $rest = $m[2];
+        $afterStories = (string) preg_replace('/^'.self::SEP.'+/', '', $m[2]);
 
-        // Longest exterior code first; fall back only if the remainder fails.
         $exteriors = array_keys(self::EXTERIORS);
         usort($exteriors, fn (string $a, string $b) => strlen($b) <=> strlen($a));
 
+        $best = null;
         foreach ($exteriors as $ext) {
-            if (! str_starts_with($rest, $ext)) {
+            if (! str_starts_with($afterStories, $ext)) {
                 continue;
             }
 
-            $tail = $this->parseStyleAndGarage(substr($rest, strlen($ext)));
-            if ($tail === null) {
+            $rest = substr($afterStories, strlen($ext));
+            $parsed = $this->parseRest($rest);
+            if ($parsed === null) {
                 continue;
             }
 
-            [$styleCode, $cars, $type] = $tail;
-
-            return new DecodedBldgDesc(
-                stories: $stories,
-                exteriorCode: $ext,
-                exterior: self::EXTERIORS[$ext],
-                styleCode: $styleCode,
-                style: self::STYLES[$styleCode],
-                garageCars: $cars,
-                garageType: $type,
-            );
+            // Fewest undecoded parts first, then most decoded parts; the
+            // longest exterior code wins any remaining tie (loop order).
+            $score = [$parsed['unknown'], -(($parsed['style'] !== null ? 1 : 0) + ($parsed['type'] !== null ? 1 : 0))];
+            if ($best === null || $score < $best['score']) {
+                $best = $parsed + ['ext' => $ext, 'score' => $score];
+            }
         }
 
-        return null;
+        if ($best === null) {
+            return null;
+        }
+
+        return new DecodedBldgDesc(
+            stories: $stories,
+            exteriorCode: $best['ext'],
+            exterior: self::EXTERIORS[$best['ext']],
+            styleCode: $best['style'],
+            style: $best['style'] !== null ? self::STYLES[$best['style']] : null,
+            garageCars: $best['cars'],
+            garageType: $best['type'],
+            unknownTokens: $best['unknown'],
+        );
     }
 
     /**
-     * @return array{0: string, 1: ?int, 2: ?GarageType}|null
+     * @return array{style: ?string, cars: ?int, type: ?GarageType, unknown: int}|null
      */
-    private function parseStyleAndGarage(string $s): ?array
+    private function parseRest(string $rest): ?array
     {
-        if ($s === '') {
-            return null;
+        $style = null;
+        $cars = null;
+        $type = null;
+        $unknown = 0;
+
+        // Style attached directly to the exterior: "SFL", "SFL2AG", "SFR".
+        if ($rest !== '' && ! preg_match('/^'.self::SEP.'/', $rest)) {
+            $first = $rest[0];
+            $next = $rest[1] ?? '';
+            $boundary = $next === '' || preg_match('/^'.self::SEP.'$/', $next) || ctype_digit($next);
+
+            if (array_key_exists($first, self::STYLES) && $boundary && ! $this->isGarage($rest)) {
+                $style = $first;
+                $rest = substr($rest, 1);
+            } elseif (! $this->isGarage($this->firstToken($rest)) && ! ctype_digit($first) && $first !== 'G') {
+                return null;
+            }
         }
 
-        $style = $s[0];
-        if (! array_key_exists($style, self::STYLES)) {
-            return null;
+        foreach (preg_split('/'.self::SEP.'+/', $rest, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+            if (preg_match('/^(\d{1,2})?(AG|UG)$/', $token, $g)) {
+                if ($type === null) {
+                    $cars = $g[1] !== '' ? (int) $g[1] : null;
+                    $type = $g[2] === 'AG' ? GarageType::Attached : GarageType::Unattached;
+
+                    continue;
+                }
+            } elseif ($style === null && strlen($token) === 1 && array_key_exists($token, self::STYLES)) {
+                $style = $token;
+
+                continue;
+            }
+
+            $unknown++;
         }
 
-        $garage = substr($s, 1);
-        if ($garage === '') {
-            return [$style, null, null];
-        }
+        return ['style' => $style, 'cars' => $cars, 'type' => $type, 'unknown' => $unknown];
+    }
 
-        if (! preg_match('/^(\d{1,2})(AG|UG)$/', $garage, $g)) {
-            return null;
-        }
+    private function firstToken(string $s): string
+    {
+        return preg_split('/'.self::SEP.'+/', $s, 2)[0] ?? '';
+    }
 
-        return [$style, (int) $g[1], $g[2] === 'AG' ? GarageType::Attached : GarageType::Unattached];
+    private function isGarage(string $token): bool
+    {
+        return (bool) preg_match('/^(\d{1,2})?(AG|UG)$/', $token);
     }
 }

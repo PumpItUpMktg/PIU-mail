@@ -34,6 +34,10 @@ test('ArcGIS epoch-ms and text dates parse', function () {
         ->and(SourceValues::sourceDate('2025-06-30')?->toDateString())->toBe('2025-06-30')
         ->and(SourceValues::sourceDate('06/30/2025')?->toDateString())->toBe('2025-06-30')
         ->and(SourceValues::sourceDate('garbage'))->toBeNull()
+        // Junk seen in the live data: year 0144 and the 1899-12-30 epoch.
+        ->and(SourceValues::sourceDate(-57340108800000))->toBeNull()
+        ->and(SourceValues::sourceDate(-2209161600000))->toBeNull()
+        ->and(SourceValues::sourceDate('1900-01-01')?->toDateString())->toBe('1900-01-01')
         ->and(SourceValues::sourceDate(null))->toBeNull();
 });
 
