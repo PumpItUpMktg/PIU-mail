@@ -76,10 +76,11 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
 - `BLDG_DESC` is decoded by `BldgDescDecoder` (`{stories}S{exterior}{style}{garage}`).
   Real assessor data is loose (`1SF`, `2SF G2`, `2SF-L-2AG`, `1S F G1`), so
   separators are tolerated and style/garage are optional; stories + exterior
-  are required. **Never guess**: only documented codes decode (garage only as
-  `{n}AG`/`{n}UG`/`AG`/`UG`); `G1`/`G2`, `2CG`, `2BG`, `X`, `OB`, `POOL`, `COL`
-  etc. stay undecoded (counted as `unknownTokens`), and `bldg_desc_raw` is
-  always kept. After changing the decoder run `piu:redecode-bldg-desc` (no
+  are required. **Never guess**: only documented codes decode. Garages:
+  `{n}AG`/`{n}UG`/`AG`/`UG`, plus **owner-confirmed `G{n}` = n-car garage and
+  `G` = a garage, attachment unknown** (`garage_type = unknown`). `G1X`, `2CG`,
+  `2BG`, `OB`, `POOL`, `COL` etc. stay undecoded (counted as `unknownTokens`),
+  and `bldg_desc_raw` is always kept. After changing the decoder run `piu:redecode-bldg-desc` (no
   re-import). `BLDG_CLASS` stays raw (no official decode table located).
 - **Style is usually absent in Morris** (most homes are just `1SF`/`2SF`), so
   lookalike matching (relay 02) must not depend on style alone.

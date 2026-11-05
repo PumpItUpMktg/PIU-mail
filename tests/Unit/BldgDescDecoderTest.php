@@ -51,63 +51,64 @@ test('never guesses: undecodable values return null', function (?string $raw) {
 // The 60 most common BLDG_DESC values from the live Morris County import
 // (2026-11-04), as `piu:parcel-stats --sample-bldg=60` listed them, with row
 // counts. Expected: display text and how many parts stay undecoded.
-// Undocumented parts (G1/G2/G, 2CG, 2BG, X, OB, POOL, P, COL, 1FAM, F) are
-// left undecoded on purpose and never break the documented parts.
+// G{n} / G decode as an n-car garage / a garage with attachment unknown
+// (owner-confirmed 2026-11-04). Other undocumented parts (G1X, 2CG, 2BG, OB,
+// POOL, P, COL, 1FAM, F) stay undecoded and never break the documented parts.
 dataset('morris', [
     ['1SF', '1-story frame', 0],                                       // 14550
     ['2SF', '2-story frame', 0],                                       // 9988
-    ['2SF G2', '2-story frame', 1],                                    // 7706
-    ['1SF G1', '1-story frame', 1],                                    // 4809
-    ['1SF G2', '1-story frame', 1],                                    // 4413
-    ['2SF G1', '2-story frame', 1],                                    // 3085
+    ['2SF G2', '2-story frame, 2-car garage', 0],                                    // 7706
+    ['1SF G1', '1-story frame, 1-car garage', 0],                                    // 4809
+    ['1SF G2', '1-story frame, 2-car garage', 0],                                    // 4413
+    ['2SF G1', '2-story frame, 1-car garage', 0],                                    // 3085
     ['2SF 2AG', '2-story frame, 2-car attached garage', 0],            // 2740
     ['1S F', '1-story frame', 0],                                      // 2613
     ['1.5SF', '1.5-story frame', 0],                                   // 2337
     ['CONDO', null, null],                                             // 2183
-    ['2SFG2', '2-story frame', 1],                                     // 1722
+    ['2SFG2', '2-story frame, 2-car garage', 0],                                     // 1722
     ['2SF-L-2AG', '2-story frame Colonial, 2-car attached garage', 0], // 1684
-    ['1S F G1', '1-story frame', 1],                                   // 1475
-    ['1SFG1', '1-story frame', 1],                                     // 1148
-    ['1.5SF G2', '1.5-story frame', 1],                                // 1043
+    ['1S F G1', '1-story frame, 1-car garage', 0],                                   // 1475
+    ['1SFG1', '1-story frame, 1-car garage', 0],                                     // 1148
+    ['1.5SF G2', '1.5-story frame, 2-car garage', 0],                                // 1043
     ['1 SF', '1-story frame', 0],                                      // 921
-    ['1SF G', '1-story frame', 1],                                     // 916
+    ['1SF G', '1-story frame, garage', 0],                                     // 916
     ['1SF G1X', '1-story frame', 1],                                   // 907
     ['2S F', '2-story frame', 0],                                      // 852
     ['2SF 2CG', '2-story frame', 1],                                   // 845
-    ['1S F G2', '1-story frame', 1],                                   // 845
-    ['2SF G', '2-story frame', 1],                                     // 779
-    ['1.5SF G1', '1.5-story frame', 1],                                // 757
-    ['1SFG2', '1-story frame', 1],                                     // 751
-    ['2S F G2', '2-story frame', 1],                                   // 736
-    ['2S F G1', '2-story frame', 1],                                   // 717
+    ['1S F G2', '1-story frame, 2-car garage', 0],                                   // 845
+    ['2SF G', '2-story frame, garage', 0],                                     // 779
+    ['1.5SF G1', '1.5-story frame, 1-car garage', 0],                                // 757
+    ['1SFG2', '1-story frame, 2-car garage', 0],                                     // 751
+    ['2S F G2', '2-story frame, 2-car garage', 0],                                   // 736
+    ['2S F G1', '2-story frame, 1-car garage', 0],                                   // 717
     ['1SCB', '1-story concrete block', 0],                             // 716
-    ['2SFG1', '2-story frame', 1],                                     // 708
+    ['2SFG1', '2-story frame, 1-car garage', 0],                                     // 708
     ['2SF-L-3AG', '2-story frame Colonial, 3-car attached garage', 0], // 707
     ['1SF G2X', '1-story frame', 1],                                   // 690
-    ['2SF G3', '2-story frame', 1],                                    // 667
+    ['2SF G3', '2-story frame, 3-car garage', 0],                                    // 667
     ['2SF-L-AG', '2-story frame Colonial, attached garage', 0],        // 599
     ['2SF-L-2AG POOL', '2-story frame Colonial, 2-car attached garage', 1], // 539
     ['2SF G2X', '2-story frame', 1],                                   // 535
     ['1.5 SF', '1.5-story frame', 0],                                  // 471
     ['1SB', '1-story brick', 0],                                       // 430
     ['1.5S F', '1.5-story frame', 0],                                  // 429
-    ['1.5S F G1', '1.5-story frame', 1],                               // 426
+    ['1.5S F G1', '1.5-story frame, 1-car garage', 0],                               // 426
     ['1SF 2', '1-story frame Bi-level', 0],                            // 424
     ['1SFR', '1-story frame Rancher', 0],                              // 399
     ['2SF-L-3AG POOL', '2-story frame Colonial, 3-car attached garage', 1], // 393
     ['2S F 1FAM', '2-story frame', 1],                                 // 390
     ['1SF OB', '1-story frame', 1],                                    // 376
-    ['2SF G2 P', '2-story frame', 2],                                  // 374
+    ['2SF G2 P', '2-story frame, 2-car garage', 1],                                  // 374
     ['2SF L AG', '2-story frame Colonial, attached garage', 0],        // 365
-    ['2SF G2 OB', '2-story frame', 2],                                 // 363
+    ['2SF G2 OB', '2-story frame, 2-car garage', 1],                                 // 363
     ['2SF L', '2-story frame Colonial', 0],                            // 362
-    ['1SFG', '1-story frame', 1],                                      // 355
+    ['1SFG', '1-story frame, garage', 0],                                      // 355
     ['2 SF', '2-story frame', 0],                                      // 342
-    ['2SF-G2', '2-story frame', 1],                                    // 317
+    ['2SF-G2', '2-story frame, 2-car garage', 0],                                    // 317
     ['2SF/2CG', '2-story frame', 1],                                   // 298
     ['TYPE A', null, null],                                            // 294
     ['TYPE B', null, null],                                            // 292
-    ['2SF G1 OB', '2-story frame', 2],                                 // 289
+    ['2SF G1 OB', '2-story frame, 1-car garage', 1],                                 // 289
     ['2SF COL', '2-story frame', 1],                                   // 279
     ['1SF S', '1-story frame Split level', 0],                         // 278
     ['1SF-R-2AG', '1-story frame Rancher, 2-car attached garage', 0],  // 277
@@ -144,4 +145,18 @@ test('renders the plain-English display', function () {
         ->toBe('1.5-story stone Colonial, 2-car attached garage')
         ->and((new BldgDescDecoder)->decode('1SBR')->display())
         ->toBe('1-story brick Rancher');
+});
+
+test('G garages: count known, attachment unknown', function () {
+    $d = (new BldgDescDecoder)->decode('2SF G2');
+
+    expect($d->garageCars)->toBe(2)
+        ->and($d->garageType)->toBe(GarageType::Unknown)
+        ->and($d->garageDisplay())->toBe('2-car garage')
+        ->and((new BldgDescDecoder)->decode('1SFG')->garageDisplay())->toBe('garage')
+        ->and((new BldgDescDecoder)->decode('1SF G1X')->garageType)->toBeNull();
+});
+
+test('semicolons and commas separate parts too', function () {
+    expect((new BldgDescDecoder)->decode('2SF;L,2AG')->display())->toBe('2-story frame Colonial, 2-car attached garage');
 });
