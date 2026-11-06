@@ -49,6 +49,9 @@ class ArcGisNjParcelSource implements NjParcelSource
             'outFields' => '*',
             'outSR' => 4326,
             'returnGeometry' => 'true',
+            // 6 decimal places of a degree is ~10 cm, finer than the source's
+            // own accuracy; roughly halves the payload (Ocean pages hit 132 MB).
+            'geometryPrecision' => 6,
             'orderByFields' => $this->objectIdField().' ASC',
             'resultOffset' => $offset,
             'resultRecordCount' => $limit,
@@ -151,6 +154,8 @@ class ArcGisNjParcelSource implements NjParcelSource
             ->connectTimeout(20)
             ->acceptJson()
             ->withUserAgent('PIU-mail parcel importer')
-            ->retry(3, 2000, throw: false);
+            // Retry brief connection blips, but not timeouts: a page that timed
+            // out will time out again, and the importer splits it instead.
+            ->retry(3, 2000, fn ($e) => ! str_contains($e->getMessage(), 'timed out'), throw: false);
     }
 }

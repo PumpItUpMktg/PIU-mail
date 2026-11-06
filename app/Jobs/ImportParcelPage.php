@@ -19,7 +19,9 @@ class ImportParcelPage implements ShouldQueue
 
     public int $tries = 5;
 
-    public int $timeout = 600;
+    // Under the worker --timeout (1800) and queue retry_after (1900): a page
+    // may be split into several smaller fetches.
+    public int $timeout = 1700;
 
     /** @var list<int> */
     public array $backoff = [10, 30, 90, 300];

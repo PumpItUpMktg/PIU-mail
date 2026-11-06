@@ -9,6 +9,8 @@ use App\Models\County;
 use App\Models\ImportReport;
 use App\Models\ImportReportPage;
 use App\Parcels\Source\NjParcelSource;
+use App\Parcels\Source\SourcePage;
+use App\Parcels\Source\SourceRequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -60,7 +62,7 @@ class ParcelImporter
         }
 
         $pageSize = (int) config('piu.parcels.page_size', 2000);
-        $page = $this->source->page($county, $offset, $pageSize);
+        $page = $this->fetchSplitting($county, $offset, $pageSize);
         $classes = (array) config('piu.parcels.import_classes', []);
 
         $stats = new PageStats;
@@ -95,6 +97,39 @@ class ParcelImporter
         $fetched = count($page->features);
 
         return $fetched > 0 && ($page->exceededTransferLimit || $fetched >= $pageSize);
+    }
+
+    /** Smallest sub-page we split down to before giving up on a page. */
+    public const MIN_SPLIT = 50;
+
+    /**
+     * Fetch a page; if the source fails on it (e.g. a timeout because a few
+     * parcels have huge outlines), fetch it again as two halves, recursively,
+     * down to MIN_SPLIT records. The result covers the same offset range.
+     */
+    private function fetchSplitting(string $county, int $offset, int $limit): SourcePage
+    {
+        try {
+            return $this->source->page($county, $offset, $limit);
+        } catch (SourceRequestException $e) {
+            if ($limit <= self::MIN_SPLIT) {
+                throw $e;
+            }
+
+            $half = intdiv($limit, 2);
+            Log::warning('piu: parcel page failed, splitting', [
+                'county' => $county, 'offset' => $offset, 'limit' => $limit, 'error' => $e->getMessage(),
+            ]);
+
+            $first = $this->fetchSplitting($county, $offset, $half);
+            if (count($first->features) < $half && ! $first->exceededTransferLimit) {
+                return $first; // reached the end of the county
+            }
+
+            $second = $this->fetchSplitting($county, $offset + $half, $limit - $half);
+
+            return new SourcePage([...$first->features, ...$second->features], $second->exceededTransferLimit);
+        }
     }
 
     public function finalize(ImportReport $report): void
