@@ -339,3 +339,62 @@ test('piu:redecode-bldg-desc runs one set-based UPDATE per county, not one per c
         ->and(Parcel::where('pams_pin', '1427_10_1')->value('style'))->toBe('Colonial')
         ->and(Parcel::where('pams_pin', '1427_10_2')->value('exterior'))->toBe('Stone');
 });
+
+test('a page the source cannot serve whole is split into smaller fetches', function () {
+    config(['piu.parcels.page_size' => 200]);
+    $source = new class extends FakeNjParcelSource
+    {
+        /** @var list<int> */
+        public array $calls = [];
+
+        public function page(string $county, int $offset, int $limit): SourcePage
+        {
+            $this->calls[] = $limit;
+            if ($limit > 50) {
+                throw new SourceRequestException('NJ parcel source page: connection failed (cURL error 28: Operation timed out)');
+            }
+
+            return parent::page($county, $offset, $limit);
+        }
+    };
+    // 120 fixture-shaped features with unique keys.
+    $base = $source->features[0];
+    $source->features = array_map(function ($i) use ($base) {
+        $f = $base;
+        $f['properties']['PCL_GUID'] = sprintf('{%08d-0000-0000-0000-000000000000}', $i);
+        $f['properties']['PAMS_PIN'] = "1427_99_{$i}";
+
+        return $f;
+    }, range(1, 120));
+    $this->app->instance(NjParcelSource::class, $source);
+
+    importMorris();
+
+    expect(Parcel::count())->toBe(120)
+        ->and(ImportReport::sole()->status)->toBe(ImportStatus::Completed)
+        ->and($source->calls)->toContain(200, 100, 50);
+});
+
+test('a page that fails even at the smallest split still fails the county', function () {
+    $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
+    {
+        public function page(string $county, int $offset, int $limit): SourcePage
+        {
+            throw new SourceRequestException('NJ parcel source page: HTTP 503');
+        }
+    });
+
+    expect(fn () => importMorris())->toThrow(SourceRequestException::class);
+    expect(County::where('name', 'MORRIS')->first()->status)->toBe(CountyStatus::Failed);
+});
+
+test('pages request 6-decimal geometry and do not retry timeouts', function () {
+    Http::fake([
+        'example.test/FeatureServer/0/query*' => Http::response(file_get_contents(fixturePath('nj_parcels_morris_page.geojson'))),
+        'example.test/FeatureServer/0*' => Http::response(['objectIdField' => 'OBJECTID']),
+    ]);
+
+    (new ArcGisNjParcelSource('https://example.test/FeatureServer/0'))->page('MORRIS', 0, 10);
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/query') && $r['geometryPrecision'] == 6);
+});
