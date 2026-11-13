@@ -6,6 +6,9 @@ return [
         'layer_url' => env('NJ_PARCELS_LAYER_URL', 'https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Parcels_Composite_NJ_WM/FeatureServer/0'),
         'page_size' => (int) env('NJ_PARCELS_PAGE_SIZE', 2000),
         'http_timeout' => (int) env('NJ_PARCELS_HTTP_TIMEOUT', 120),
+        // A page response bigger than this is abandoned mid-download and the
+        // page is fetched in smaller pieces (protects the worker's memory).
+        'max_response_mb' => (int) env('NJ_PARCELS_MAX_RESPONSE_MB', 16),
         'county_field' => 'COUNTY',
 
         // PROP_CLASS whitelist for the importer. Empty = import every class

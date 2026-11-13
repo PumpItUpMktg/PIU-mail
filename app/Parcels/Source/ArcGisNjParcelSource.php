@@ -17,6 +17,7 @@ class ArcGisNjParcelSource implements NjParcelSource
         private readonly string $layerUrl,
         private readonly int $timeout = 120,
         private readonly string $countyField = 'COUNTY',
+        private readonly int $maxResponseBytes = 16 * 1024 * 1024,
     ) {}
 
     public function layerInfo(): array
@@ -134,7 +135,7 @@ class ArcGisNjParcelSource implements NjParcelSource
             throw new SourceRequestException("NJ parcel source {$operation}: HTTP {$response->status()}");
         }
 
-        $json = $response->json();
+        $json = json_decode($this->readCapped($response, $operation), true);
         if (! is_array($json)) {
             throw new SourceRequestException("NJ parcel source {$operation}: response was not JSON");
         }
@@ -148,10 +149,38 @@ class ArcGisNjParcelSource implements NjParcelSource
         return $json;
     }
 
+    /**
+     * Read the body as a stream and stop as soon as it passes the size cap,
+     * before it can exhaust the worker's memory. A huge page (Ocean's coastal
+     * parcels reached 132 MB per 2,000 records) then fails fast and the
+     * importer fetches it in smaller pieces instead.
+     */
+    private function readCapped(Response $response, string $operation): string
+    {
+        $stream = $response->toPsrResponse()->getBody();
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
+
+        $body = '';
+        while (! $stream->eof()) {
+            $body .= $stream->read(1024 * 1024);
+            if (strlen($body) > $this->maxResponseBytes) {
+                $stream->close();
+                $mb = round($this->maxResponseBytes / 1024 / 1024, 1);
+
+                throw new SourceRequestException("NJ parcel source {$operation}: response too large (over {$mb} MB)");
+            }
+        }
+
+        return $body;
+    }
+
     private function http(): PendingRequest
     {
         return Http::timeout($this->timeout)
             ->connectTimeout(20)
+            ->withOptions(['stream' => true, 'read_timeout' => 60])
             ->acceptJson()
             ->withUserAgent('PIU-mail parcel importer')
             // Retry brief connection blips, but not timeouts: a page that timed
