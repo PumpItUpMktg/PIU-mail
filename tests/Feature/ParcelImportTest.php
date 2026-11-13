@@ -14,6 +14,7 @@ use App\Parcels\Source\SourcePage;
 use App\Parcels\Source\SourceRequestException;
 use App\Parcels\ZctaLoader;
 use Database\Seeders\CountySeeder;
+use Illuminate\Queue\MaxAttemptsExceededException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -397,4 +398,15 @@ test('pages request 6-decimal geometry and do not retry timeouts', function () {
     (new ArcGisNjParcelSource('https://example.test/FeatureServer/0'))->page('MORRIS', 0, 10);
 
     Http::assertSent(fn ($r) => str_contains($r->url(), '/query') && $r['geometryPrecision'] == 6);
+});
+
+test('a worker killed on a page reports a readable reason', function () {
+    importMorris();
+    $report = ImportReport::sole();
+
+    (new ImportParcelPage($report->id, 'MORRIS', 216000))
+        ->failed(new MaxAttemptsExceededException('App\Jobs\ImportParcelPage has been attempted too many times.'));
+
+    expect(County::where('name', 'MORRIS')->value('last_error'))
+        ->toContain('offset 216000')->toContain('most likely out of memory');
 });

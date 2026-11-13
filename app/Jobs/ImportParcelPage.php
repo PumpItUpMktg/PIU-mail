@@ -6,6 +6,7 @@ use App\Models\ImportReport;
 use App\Parcels\ParcelImporter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\MaxAttemptsExceededException;
 use Throwable;
 
 /**
@@ -48,10 +49,14 @@ class ImportParcelPage implements ShouldQueue
 
     public function failed(?Throwable $e): void
     {
+        $reason = $e instanceof MaxAttemptsExceededException
+            ? 'the worker process was killed on this page on every attempt (most likely out of memory, or over the job timeout)'
+            : ($e?->getMessage() ?? 'unknown error');
+
         app(ParcelImporter::class)->fail(
             $this->reportId,
             $this->county,
-            sprintf('Page at offset %d failed: %s', $this->offset, $e?->getMessage() ?? 'unknown error'),
+            sprintf('Page at offset %d failed: %s', $this->offset, $reason),
         );
     }
 }

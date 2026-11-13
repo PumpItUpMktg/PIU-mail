@@ -18,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
             layerUrl: (string) config('piu.parcels.layer_url'),
             timeout: (int) config('piu.parcels.http_timeout', 120),
             countyField: (string) config('piu.parcels.county_field', 'COUNTY'),
+            maxResponseBytes: (int) config('piu.parcels.max_response_mb', 16) * 1024 * 1024,
         ));
     }
 

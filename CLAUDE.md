@@ -110,7 +110,12 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
   attached). `retry_after` defaults to 1900s for database and redis queues so
   long import jobs are never re-run while still running.
 - The queue worker needs `--timeout=1800`, and the app compute must not
-  hibernate, or queued imports sit unprocessed.
+  hibernate, or queued imports sit unprocessed. Its connection must be
+  `database` (a worker left on `redis` silently processes nothing).
+- The app runs in 512 MB. Parcel page responses are read as a stream and
+  abandoned past `NJ_PARCELS_MAX_RESPONSE_MB` (16); the importer then splits the
+  page (down to 50 records). Ocean's coastal parcels produced 132 MB pages that
+  timed out, then OOM-killed the worker ("attempted too many times").
 
 ## Stack
 
