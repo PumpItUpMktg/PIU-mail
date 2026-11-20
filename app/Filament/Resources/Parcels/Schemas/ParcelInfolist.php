@@ -50,6 +50,7 @@ class ParcelInfolist
             Section::make('Source')->columns(4)->collapsible()->schema([
                 $t('pcl_last_upd', 'PCLLASTUPD')->date(), $t('pcl_pub_date', 'PCL_PBDATE')->date(),
                 $t('source_layer_version', 'Layer version'), $t('imported_at', 'Imported')->dateTime(),
+                $t('geometry_note', 'Outline')->placeholder('Full outline from source'),
             ]),
             Section::make('All source attributes (owner fields excluded)')->collapsed()->schema([
                 KeyValueEntry::make('source_attributes')->hiddenLabel(),

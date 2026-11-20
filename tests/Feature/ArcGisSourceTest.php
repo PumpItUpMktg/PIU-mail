@@ -50,3 +50,17 @@ test('a response under the cap decodes normally', function () {
 
     expect($page->features)->toHaveCount(6);
 });
+
+test('simplified and attribute-only page requests send the right parameters', function () {
+    Http::fake([
+        'example.test/FeatureServer/0/query*' => Http::response(['type' => 'FeatureCollection', 'features' => []]),
+        'example.test/FeatureServer/0*' => Http::response(['objectIdField' => 'OBJECTID']),
+    ]);
+    $source = new ArcGisNjParcelSource('https://example.test/FeatureServer/0');
+
+    $source->page('MORRIS', 216000, 1, 'simplified');
+    $source->page('MORRIS', 216000, 1, 'none');
+
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/query') && ($r->data()['maxAllowableOffset'] ?? null) == ArcGisNjParcelSource::SIMPLIFY_DEGREES && $r['returnGeometry'] === 'true');
+    Http::assertSent(fn ($r) => str_contains($r->url(), '/query') && $r['returnGeometry'] === 'false' && ! array_key_exists('maxAllowableOffset', $r->data()));
+});

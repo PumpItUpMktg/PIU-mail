@@ -75,6 +75,9 @@ final class ParcelMapper
             'pcl_last_upd' => SourceValues::sourceDate($attrs['PCLLASTUPD'] ?? null)?->toDateString(),
             'pcl_pub_date' => SourceValues::sourceDate($attrs['PCL_PBDATE'] ?? null)?->toDateString(),
             'owner_occupied' => $ownerOccupied,
+            // null = full outline; 'simplified' / 'unavailable' when the source
+            // could not serve it (see ParcelImporter::fetchSplitting).
+            'geometry_note' => $feature[ParcelImporter::GEOMETRY_NOTE] ?? null,
         ];
 
         return new MappedParcel(

@@ -28,7 +28,7 @@ final class ParcelUpserter
         'land_desc_raw', 'calc_acre',
         'land_val', 'imprvt_val', 'net_value', 'last_yr_tax',
         'sale_price', 'sale_nominal', 'sales_code', 'deed_book', 'deed_page', 'deed_date',
-        'pcl_last_upd', 'pcl_pub_date', 'owner_occupied',
+        'pcl_last_upd', 'pcl_pub_date', 'owner_occupied', 'geometry_note',
     ];
 
     /**
