@@ -10,9 +10,12 @@ use Illuminate\Queue\MaxAttemptsExceededException;
 use Throwable;
 
 /**
- * Imports one page of one county. The payload is only (report id, county,
- * offset): source rows, and therefore owner fields, are fetched inside
- * handle() and never serialized onto the queue or into failed_jobs.
+ * Imports one page of one county, then queues the next step of the chain.
+ * The payload is only (report id, county, offset, limit): source rows, and
+ * therefore owner fields, are fetched inside handle() and never serialized
+ * onto the queue or into failed_jobs. Each job makes one source request, so
+ * a page the source can't serve is narrowed down across several short jobs
+ * (each step saved on the queue) instead of inside one long one.
  */
 class ImportParcelPage implements ShouldQueue
 {
@@ -20,8 +23,8 @@ class ImportParcelPage implements ShouldQueue
 
     public int $tries = 5;
 
-    // Under the worker --timeout (1800) and queue retry_after (1900): a page
-    // may be split into several smaller fetches.
+    // One source request (plus at most two degraded retries) per job; stays
+    // under the worker --timeout (1800) and queue retry_after (1900).
     public int $timeout = 1700;
 
     /** @var list<int> */
@@ -31,17 +34,17 @@ class ImportParcelPage implements ShouldQueue
         public string $reportId,
         public string $county,
         public int $offset,
+        public ?int $limit = null,
     ) {}
 
     public function handle(ParcelImporter $importer): void
     {
         $report = ImportReport::findOrFail($this->reportId);
 
-        $more = $importer->importPage($report, $this->county, $this->offset);
+        $result = $importer->importPage($report, $this->county, $this->offset, $this->limit);
 
-        if ($more) {
-            $next = $this->offset + (int) config('piu.parcels.page_size', 2000);
-            self::dispatch($this->reportId, $this->county, $next);
+        if ($result->split || $result->more) {
+            self::dispatch($this->reportId, $this->county, $result->nextOffset, $result->nextLimit);
         } else {
             FinalizeCountyImport::dispatch($this->reportId);
         }
@@ -56,7 +59,7 @@ class ImportParcelPage implements ShouldQueue
         app(ParcelImporter::class)->fail(
             $this->reportId,
             $this->county,
-            sprintf('Page at offset %d failed: %s', $this->offset, $reason),
+            sprintf('Page at offset %d (%d records) failed: %s', $this->offset, $this->limit ?? (int) config('piu.parcels.page_size', 2000), $reason),
         );
     }
 }

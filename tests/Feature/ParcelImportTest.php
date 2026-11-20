@@ -222,7 +222,9 @@ test('a failing page marks only that county failed', function () {
         return true;
     });
 
-    // MORRIS: the source is down; the queue exhausts retries and calls failed().
+    // MORRIS: the source is down. The chain halves down to a single parcel;
+    // that job's degraded retries fail too, so it throws and the queue
+    // exhausts retries and calls failed().
     $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
     {
         public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
@@ -230,10 +232,11 @@ test('a failing page marks only that county failed', function () {
             throw new SourceRequestException('NJ parcel source page: HTTP 503');
         }
     });
+    $singleParcel = new ImportParcelPage($jobs['MORRIS']->reportId, 'MORRIS', 0, 1);
     try {
-        app()->call([$jobs['MORRIS'], 'handle']);
+        app()->call([$singleParcel, 'handle']);
     } catch (SourceRequestException $e) {
-        $jobs['MORRIS']->failed($e);
+        $singleParcel->failed($e);
     }
 
     // SUSSEX: its own chain carries on.
@@ -474,4 +477,40 @@ test('a parcel with no servable outline is imported without one, never skipped',
         ->and(DB::table('parcels')->where('id', $bad->id)->value('geom'))->toBeNull()
         ->and($bad->site_address)->toBe('16 N MAIN ST')
         ->and(implode(' ', ImportReport::sole()->notes))->toContain('1 parcels imported without an outline');
+});
+
+test('a page the source rejects writes nothing and queues the same offset at half size', function () {
+    Queue::fake();
+    $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
+    {
+        public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
+        {
+            if ($limit > 500) {
+                throw new SourceRequestException('NJ parcel source page: ArcGIS error 400: ');
+            }
+
+            return parent::page($county, $offset, $limit, $geometry);
+        }
+    });
+    importMorris();
+    $report = ImportReport::sole();
+
+    // One job = one source request: the 2000-record page fails, nothing is
+    // written, and the next job retries offset 0 with 1000 records.
+    app()->call([new ImportParcelPage($report->id, 'MORRIS', 0), 'handle']);
+
+    expect(Parcel::count())->toBe(0)
+        ->and($report->pages()->count())->toBe(0);
+    Queue::assertPushed(ImportParcelPage::class, fn ($j) => $j->offset === 0 && $j->limit === 1000);
+});
+
+test('after a smaller page succeeds, the next page doubles back toward full size', function () {
+    Queue::fake();
+    importMorris();
+    $report = ImportReport::sole();
+    config(['piu.parcels.page_size' => 4]);
+
+    app()->call([new ImportParcelPage($report->id, 'MORRIS', 0, 1), 'handle']);
+
+    Queue::assertPushed(ImportParcelPage::class, fn ($j) => $j->offset === 1 && $j->limit === 2);
 });

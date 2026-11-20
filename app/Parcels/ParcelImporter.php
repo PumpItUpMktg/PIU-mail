@@ -48,21 +48,48 @@ class ParcelImporter
     }
 
     /**
-     * Fetch, map, and upsert one page. Returns whether another page follows.
+     * Fetch, map, and upsert one page of $limit records (default: the page
+     * size) at $offset, with exactly ONE source request (plus at most two
+     * degraded retries for a single parcel), so no job can outrun its timeout.
+     *
+     * If the source fails on the page (a timeout, a response over the size
+     * cap, or an ArcGIS error from a few enormous or malformed outlines), this
+     * writes nothing and returns a split: the next job retries the same offset
+     * with half the records. After a successful smaller page the size doubles
+     * back toward the page size. A single parcel that still fails is fetched
+     * with a server-simplified outline, then without one (tagged in
+     * geometry_note); if even that fails the error is raised and the county
+     * fails. Nothing is ever skipped.
      */
-    public function importPage(ImportReport $report, string $county, int $offset): bool
+    public function importPage(ImportReport $report, string $county, int $offset, ?int $limit = null): PageResult
     {
         County::where('name', $county)->update(['status' => CountyStatus::Loading]);
 
-        if ($offset === 0) {
+        $pageSize = (int) config('piu.parcels.page_size', 2000);
+        $limit = max(1, min($limit ?? $pageSize, $pageSize));
+
+        if ($offset === 0 && $report->expected_count === null) {
             $report->update([
                 'source_layer_version' => $this->source->layerVersion(),
                 'expected_count' => $this->source->count($county),
             ]);
         }
 
-        $pageSize = (int) config('piu.parcels.page_size', 2000);
-        $page = $this->fetchSplitting($county, $offset, $pageSize);
+        try {
+            $page = $this->source->page($county, $offset, $limit);
+        } catch (SourceRequestException $e) {
+            if ($limit > 1) {
+                $half = intdiv($limit, 2);
+                Log::warning('piu: parcel page failed, splitting', [
+                    'county' => $county, 'offset' => $offset, 'limit' => $limit, 'next_limit' => $half, 'error' => $e->getMessage(),
+                ]);
+
+                return new PageResult(true, $offset, $half, true);
+            }
+
+            $page = $this->fetchDegraded($county, $offset, $e);
+        }
+
         $classes = (array) config('piu.parcels.import_classes', []);
 
         $stats = new PageStats;
@@ -89,53 +116,23 @@ class ParcelImporter
         );
 
         Log::info('piu: parcel page imported', [
-            'county' => $county, 'offset' => $offset,
+            'county' => $county, 'offset' => $offset, 'limit' => $limit,
             'fetched' => $stats->data['fetched'], 'inserted' => $written['inserted'],
             'updated' => $written['updated'], 'duplicates' => $written['duplicates'],
         ]);
 
         $fetched = count($page->features);
 
-        return $fetched > 0 && ($page->exceededTransferLimit || $fetched >= $pageSize);
+        return new PageResult(
+            split: false,
+            nextOffset: $offset + $fetched,
+            nextLimit: $limit < $pageSize ? min($pageSize, $limit * 2) : $pageSize,
+            more: $fetched > 0 && ($page->exceededTransferLimit || $fetched >= $limit),
+        );
     }
 
     /** Key added to a feature fetched without its full outline. */
     public const GEOMETRY_NOTE = 'piu_geometry_note';
-
-    /**
-     * Fetch a page; if the source fails on it (a timeout, a response over the
-     * size cap, or an ArcGIS error caused by a few enormous or malformed
-     * parcel outlines), fetch it again as two halves, recursively, down to a
-     * single parcel. A single parcel that still fails is fetched with a
-     * server-simplified outline, then without an outline, and tagged so the
-     * report and the parcel record say so. If even the no-outline request
-     * fails, the source itself is failing and the error is raised: nothing is
-     * ever skipped silently.
-     */
-    private function fetchSplitting(string $county, int $offset, int $limit): SourcePage
-    {
-        try {
-            return $this->source->page($county, $offset, $limit);
-        } catch (SourceRequestException $e) {
-            if ($limit <= 1) {
-                return $this->fetchDegraded($county, $offset, $e);
-            }
-
-            $half = intdiv($limit, 2);
-            Log::warning('piu: parcel page failed, splitting', [
-                'county' => $county, 'offset' => $offset, 'limit' => $limit, 'error' => $e->getMessage(),
-            ]);
-
-            $first = $this->fetchSplitting($county, $offset, $half);
-            if (count($first->features) < $half && ! $first->exceededTransferLimit) {
-                return $first; // reached the end of the county
-            }
-
-            $second = $this->fetchSplitting($county, $offset + $half, $limit - $half);
-
-            return new SourcePage([...$first->features, ...$second->features], $second->exceededTransferLimit);
-        }
-    }
 
     private function fetchDegraded(string $county, int $offset, SourceRequestException $original): SourcePage
     {
