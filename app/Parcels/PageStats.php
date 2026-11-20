@@ -16,6 +16,8 @@ final class PageStats
         'skipped_by_class' => 0,
         'null_year' => 0,
         'null_geometry' => 0,
+        'geometry_simplified' => 0,
+        'geometry_unavailable' => 0,
         'bldg_desc_present' => 0,
         'bldg_desc_decoded' => 0,
         'counts_by_class' => [],
@@ -34,6 +36,11 @@ final class PageStats
         }
         if ($p->geometryJson === null) {
             $this->data['null_geometry']++;
+        }
+        if (($p->columns['geometry_note'] ?? null) === 'simplified') {
+            $this->data['geometry_simplified']++;
+        } elseif (($p->columns['geometry_note'] ?? null) === 'unavailable') {
+            $this->data['geometry_unavailable']++;
         }
         if ($p->bldgDescPresent) {
             $this->data['bldg_desc_present']++;

@@ -16,7 +16,11 @@ interface NjParcelSource
 
     public function count(string $county, ?string $extraWhere = null): int;
 
-    public function page(string $county, int $offset, int $limit): SourcePage;
+    /**
+     * @param  string  $geometry  'full' (default), 'simplified' (server-side
+     *                            generalized to ~5 m) or 'none' (attributes only)
+     */
+    public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage;
 
     /**
      * Min/max of PCL_PBDATE and PCLLASTUPD, grouped by county.

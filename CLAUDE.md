@@ -114,8 +114,13 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
   `database` (a worker left on `redis` silently processes nothing).
 - The app runs in 512 MB. Parcel page responses are read as a stream and
   abandoned past `NJ_PARCELS_MAX_RESPONSE_MB` (16); the importer then splits the
-  page (down to 50 records). Ocean's coastal parcels produced 132 MB pages that
-  timed out, then OOM-killed the worker ("attempted too many times").
+  page, down to a single parcel. Ocean's coastal parcels produced 132 MB pages
+  that timed out, then OOM-killed the worker, then hit "ArcGIS error 400".
+- A single parcel the source cannot serve is fetched with a server-simplified
+  outline (~5 m), then without an outline, and `parcels.geometry_note` records
+  `simplified` / `unavailable` (null = full outline); the import report notes the
+  counts. Nothing is skipped: if even the no-outline request fails, the county
+  fails (that means the source is down, not one bad parcel).
 
 ## Stack
 

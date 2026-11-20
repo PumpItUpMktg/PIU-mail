@@ -99,21 +99,26 @@ class ParcelImporter
         return $fetched > 0 && ($page->exceededTransferLimit || $fetched >= $pageSize);
     }
 
-    /** Smallest sub-page we split down to before giving up on a page. */
-    public const MIN_SPLIT = 50;
+    /** Key added to a feature fetched without its full outline. */
+    public const GEOMETRY_NOTE = 'piu_geometry_note';
 
     /**
-     * Fetch a page; if the source fails on it (e.g. a timeout because a few
-     * parcels have huge outlines), fetch it again as two halves, recursively,
-     * down to MIN_SPLIT records. The result covers the same offset range.
+     * Fetch a page; if the source fails on it (a timeout, a response over the
+     * size cap, or an ArcGIS error caused by a few enormous or malformed
+     * parcel outlines), fetch it again as two halves, recursively, down to a
+     * single parcel. A single parcel that still fails is fetched with a
+     * server-simplified outline, then without an outline, and tagged so the
+     * report and the parcel record say so. If even the no-outline request
+     * fails, the source itself is failing and the error is raised: nothing is
+     * ever skipped silently.
      */
     private function fetchSplitting(string $county, int $offset, int $limit): SourcePage
     {
         try {
             return $this->source->page($county, $offset, $limit);
         } catch (SourceRequestException $e) {
-            if ($limit <= self::MIN_SPLIT) {
-                throw $e;
+            if ($limit <= 1) {
+                return $this->fetchDegraded($county, $offset, $e);
             }
 
             $half = intdiv($limit, 2);
@@ -132,6 +137,31 @@ class ParcelImporter
         }
     }
 
+    private function fetchDegraded(string $county, int $offset, SourceRequestException $original): SourcePage
+    {
+        foreach (['simplified' => 'simplified', 'none' => 'unavailable'] as $mode => $note) {
+            try {
+                $page = $this->source->page($county, $offset, 1, $mode);
+            } catch (SourceRequestException) {
+                continue;
+            }
+
+            Log::warning('piu: parcel imported with degraded outline', [
+                'county' => $county, 'offset' => $offset, 'outline' => $note, 'error' => $original->getMessage(),
+            ]);
+
+            $features = array_map(function (array $f) use ($note) {
+                $f[self::GEOMETRY_NOTE] = $note;
+
+                return $f;
+            }, $page->features);
+
+            return new SourcePage($features, $page->exceededTransferLimit);
+        }
+
+        throw $original;
+    }
+
     public function finalize(ImportReport $report): void
     {
         $county = $report->county;
@@ -143,6 +173,13 @@ class ParcelImporter
             $noZip = $this->zcta->assignCounty($county);
         } else {
             $notes[] = 'ZCTAs not loaded: site_zip not assigned. Run piu:load-zctas, then re-import.';
+        }
+
+        if (($totals['geometry_simplified'] ?? 0) > 0) {
+            $notes[] = "{$totals['geometry_simplified']} parcels imported with a server-simplified outline (~5 m): the source could not serve their full outline.";
+        }
+        if (($totals['geometry_unavailable'] ?? 0) > 0) {
+            $notes[] = "{$totals['geometry_unavailable']} parcels imported without an outline: the source could not serve it at all.";
         }
 
         $rowCount = DB::table('parcels')->where('county', $county)->count();

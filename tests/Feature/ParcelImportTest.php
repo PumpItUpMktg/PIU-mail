@@ -225,7 +225,7 @@ test('a failing page marks only that county failed', function () {
     // MORRIS: the source is down; the queue exhausts retries and calls failed().
     $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
     {
-        public function page(string $county, int $offset, int $limit): SourcePage
+        public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
         {
             throw new SourceRequestException('NJ parcel source page: HTTP 503');
         }
@@ -348,14 +348,14 @@ test('a page the source cannot serve whole is split into smaller fetches', funct
         /** @var list<int> */
         public array $calls = [];
 
-        public function page(string $county, int $offset, int $limit): SourcePage
+        public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
         {
             $this->calls[] = $limit;
             if ($limit > 50) {
                 throw new SourceRequestException('NJ parcel source page: connection failed (cURL error 28: Operation timed out)');
             }
 
-            return parent::page($county, $offset, $limit);
+            return parent::page($county, $offset, $limit, $geometry);
         }
     };
     // 120 fixture-shaped features with unique keys.
@@ -379,7 +379,7 @@ test('a page the source cannot serve whole is split into smaller fetches', funct
 test('a page that fails even at the smallest split still fails the county', function () {
     $this->app->instance(NjParcelSource::class, new class extends FakeNjParcelSource
     {
-        public function page(string $county, int $offset, int $limit): SourcePage
+        public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
         {
             throw new SourceRequestException('NJ parcel source page: HTTP 503');
         }
@@ -409,4 +409,69 @@ test('a worker killed on a page reports a readable reason', function () {
 
     expect(County::where('name', 'MORRIS')->value('last_error'))
         ->toContain('offset 216000')->toContain('most likely out of memory');
+});
+
+function sourceWithBadParcel(string $worksWith): FakeNjParcelSource
+{
+    // The 3rd fixture feature (offset 2) cannot be served with a full outline.
+    $source = new class extends FakeNjParcelSource
+    {
+        public string $worksWith = 'simplified';
+
+        public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
+        {
+            $covers = $offset <= 2 && $offset + $limit > 2;
+            $allowed = match ($this->worksWith) {
+                'simplified' => in_array($geometry, ['simplified', 'none'], true),
+                'none' => $geometry === 'none',
+                default => false,
+            };
+            if ($covers && ! $allowed) {
+                throw new SourceRequestException('NJ parcel source page: ArcGIS error 400: ');
+            }
+
+            $page = parent::page($county, $offset, $limit, $geometry);
+            if ($geometry === 'none') {
+                $page = new SourcePage(array_map(fn ($f) => ['geometry' => null] + $f, $page->features), $page->exceededTransferLimit);
+            }
+
+            return $page;
+        }
+    };
+    $source->worksWith = $worksWith;
+
+    return $source;
+}
+
+test('a parcel the source cannot serve in full is imported with a simplified outline', function () {
+    config(['piu.parcels.page_size' => 6]);
+    $source = sourceWithBadParcel('simplified');
+    $this->app->instance(NjParcelSource::class, $source);
+
+    importMorris();
+
+    $bad = Parcel::where('pams_pin', '1427_10_3')->sole();
+    $report = ImportReport::sole();
+    expect($report->status)->toBe(ImportStatus::Completed)
+        ->and(Parcel::count())->toBe(5)
+        ->and($bad->geometry_note)->toBe('simplified')
+        ->and(DB::table('parcels')->where('id', $bad->id)->value('geom'))->not->toBeNull()
+        ->and(Parcel::whereNull('geometry_note')->count())->toBe(4)
+        ->and(implode(' ', $report->notes))->toContain('1 parcels imported with a server-simplified outline')
+        ->and($source->modes)->toContain('simplified')->not->toContain('none');
+});
+
+test('a parcel with no servable outline is imported without one, never skipped', function () {
+    config(['piu.parcels.page_size' => 6]);
+    $this->app->instance(NjParcelSource::class, sourceWithBadParcel('none'));
+
+    importMorris();
+
+    $bad = Parcel::where('pams_pin', '1427_10_3')->sole();
+    expect(ImportReport::sole()->status)->toBe(ImportStatus::Completed)
+        ->and(Parcel::count())->toBe(5)
+        ->and($bad->geometry_note)->toBe('unavailable')
+        ->and(DB::table('parcels')->where('id', $bad->id)->value('geom'))->toBeNull()
+        ->and($bad->site_address)->toBe('16 N MAIN ST')
+        ->and(implode(' ', ImportReport::sole()->notes))->toContain('1 parcels imported without an outline');
 });

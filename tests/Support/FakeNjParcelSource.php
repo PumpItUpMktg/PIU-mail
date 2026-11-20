@@ -34,8 +34,12 @@ class FakeNjParcelSource implements NjParcelSource
         return count($this->forCounty($county));
     }
 
-    public function page(string $county, int $offset, int $limit): SourcePage
+    /** @var list<string> geometry mode per call */
+    public array $modes = [];
+
+    public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
     {
+        $this->modes[] = $geometry;
         $all = $this->forCounty($county);
         $slice = array_slice($all, $offset, $limit);
 

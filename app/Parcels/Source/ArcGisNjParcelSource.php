@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Http;
  */
 class ArcGisNjParcelSource implements NjParcelSource
 {
+    /** ~5 m at NJ's latitude. */
+    public const SIMPLIFY_DEGREES = 0.00005;
+
     public function __construct(
         private readonly string $layerUrl,
         private readonly int $timeout = 120,
@@ -43,13 +46,13 @@ class ArcGisNjParcelSource implements NjParcelSource
         return (int) ($json['count'] ?? 0);
     }
 
-    public function page(string $county, int $offset, int $limit): SourcePage
+    public function page(string $county, int $offset, int $limit, string $geometry = 'full'): SourcePage
     {
-        $json = $this->get($this->layerUrl.'/query', [
+        $query = [
             'where' => $this->countyWhere($county),
             'outFields' => '*',
             'outSR' => 4326,
-            'returnGeometry' => 'true',
+            'returnGeometry' => $geometry === 'none' ? 'false' : 'true',
             // 6 decimal places of a degree is ~10 cm, finer than the source's
             // own accuracy; roughly halves the payload (Ocean pages hit 132 MB).
             'geometryPrecision' => 6,
@@ -57,7 +60,14 @@ class ArcGisNjParcelSource implements NjParcelSource
             'resultOffset' => $offset,
             'resultRecordCount' => $limit,
             'f' => 'geojson',
-        ], 'page');
+        ];
+
+        if ($geometry === 'simplified') {
+            // Server-side generalization, in output units (degrees): ~5 m.
+            $query['maxAllowableOffset'] = self::SIMPLIFY_DEGREES;
+        }
+
+        $json = $this->get($this->layerUrl.'/query', $query, 'page');
 
         $features = array_values($json['features'] ?? []);
         $exceeded = (bool) ($json['exceededTransferLimit'] ?? $json['properties']['exceededTransferLimit'] ?? false);
