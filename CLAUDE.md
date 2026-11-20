@@ -113,9 +113,14 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
   hibernate, or queued imports sit unprocessed. Its connection must be
   `database` (a worker left on `redis` silently processes nothing).
 - The app runs in 512 MB. Parcel page responses are read as a stream and
-  abandoned past `NJ_PARCELS_MAX_RESPONSE_MB` (16); the importer then splits the
-  page, down to a single parcel. Ocean's coastal parcels produced 132 MB pages
-  that timed out, then OOM-killed the worker, then hit "ArcGIS error 400".
+  abandoned past `NJ_PARCELS_MAX_RESPONSE_MB` (16). Ocean's coastal parcels
+  produced 132 MB pages that timed out, then OOM-killed the worker, then hit
+  "ArcGIS error 400".
+- **One source request per page job.** A page the source rejects writes nothing
+  and queues the same offset at half size (down to 1 parcel); after a smaller
+  page succeeds the size doubles back to the page size. Never narrow a page
+  down inside a single job: the many slow failing requests outran the job
+  timeout and the job was restarted from scratch ("attempts: 3").
 - A single parcel the source cannot serve is fetched with a server-simplified
   outline (~5 m), then without an outline, and `parcels.geometry_note` records
   `simplified` / `unavailable` (null = full outline); the import report notes the
