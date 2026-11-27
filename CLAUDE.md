@@ -10,7 +10,7 @@ Area**, and sends "Current Resident" postcards through Lob. First tenant: Pump
 It Up Marketing (brand Sump Pump Gurus first). v1 is **New Jersey only**, on
 free state parcel data.
 
-Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
+Relay plan: 01 foundation + NJ parcel import (**done**, see `docs/relay-01-closeout.md`) · 02 map + Target Areas ·
 03 suppression + approval · 04 Lob sending · 05 Joby connector + attribution.
 
 ## Locked product decisions
@@ -102,7 +102,16 @@ Relay plan: 01 foundation + NJ parcel import (this) · 02 map + Target Areas ·
   them are class 2**, so the per-county import skipping them loses no homes.
 - Each county has a single `PCL_PBDATE` (Union oldest: 2023-10-03).
 - Morris: 177,533 parcels (152,289 class 2), 359 MB compact (~2.1 KB/row,
-  geometry ~300 B, `source_attributes` ~960 B) → ~6.1 GB statewide.
+  geometry ~300 B, `source_attributes` ~960 B).
+- **Statewide, all 21 counties loaded (2026-11-27):** 3,077,980 parcels (=
+  NJOGIS total with a county), **2,542,604 class 2**, 5.92 GB, 258 without a
+  ZIP, 0 degraded outlines. Details: `docs/relay-01-closeout.md`.
+- **Decode gap:** residential stories+exterior 60.5%, **style 13%**. Many
+  counties write plain words (`COLONIAL`, `RANCH`, `CAPE COD`, `SFD`, `CONDO`)
+  or reversed codes (`F2S`, `B2S`). Extending the decoder needs owner sign-off
+  (proposal in the close-out doc). **Relay 02 lookalike matching must not
+  depend on style**: use year built, lot size, stories/exterior, value
+  within the municipality, proximity; style only as a booster.
 
 ## Laravel Cloud notes
 
