@@ -24,7 +24,7 @@ final class ParcelUpserter
         'county', 'municipality', 'site_address',
         'prop_class', 'prop_use', 'dwell_units', 'comm_units',
         'yr_constr', 'bldg_desc_raw', 'stories', 'exterior_code', 'exterior', 'style_code', 'style',
-        'garage_cars', 'garage_type', 'bldg_class',
+        'garage_cars', 'garage_type', 'dwelling_type', 'bldg_class',
         'land_desc_raw', 'calc_acre',
         'land_val', 'imprvt_val', 'net_value', 'last_yr_tax',
         'sale_price', 'sale_nominal', 'sales_code', 'deed_book', 'deed_page', 'deed_date',

@@ -33,12 +33,14 @@ class ParcelStats extends Command
             $exterior = $q()->whereNotNull('exterior_code')->count();
             $style = $q()->whereNotNull('style_code')->count();
             $garage = $q()->whereNotNull('garage_type')->count();
-            $this->line(sprintf('BLDG_DESC, %s: %d present | stories+exterior %d (%s) | style %d (%s) | garage %d (%s)',
-                $label, $present, $exterior, $pct($exterior), $style, $pct($style), $garage, $pct($garage)));
+            $dwelling = $q()->whereNotNull('dwelling_type')->count();
+            $any = $q()->where(fn ($w) => $w->whereNotNull('exterior_code')->orWhereNotNull('style_code')->orWhereNotNull('dwelling_type'))->count();
+            $this->line(sprintf('BLDG_DESC, %s: %d present | anything decoded %d (%s) | stories+exterior %d (%s) | style %d (%s) | garage %d (%s) | dwelling type %d (%s)',
+                $label, $present, $any, $pct($any), $exterior, $pct($exterior), $style, $pct($style), $garage, $pct($garage), $dwelling, $pct($dwelling)));
         }
 
         $this->line('Top BLDG_DESC values with no decode at all:');
-        $this->table(['BLDG_DESC', 'Rows'], $base()->whereNotNull('bldg_desc_raw')->whereNull('exterior_code')
+        $this->table(['BLDG_DESC', 'Rows'], $base()->whereNotNull('bldg_desc_raw')->whereNull('exterior_code')->whereNull('style_code')->whereNull('dwelling_type')
             ->selectRaw('bldg_desc_raw AS v, count(*) AS n')->groupBy('v')->orderByDesc('n')->limit(25)->get()
             ->map(fn ($r) => [$r->v, $r->n])->all());
 

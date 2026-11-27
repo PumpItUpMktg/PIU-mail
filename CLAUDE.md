@@ -82,6 +82,14 @@ Relay plan: 01 foundation + NJ parcel import (**done**, see `docs/relay-01-close
   `2BG`, `OB`, `POOL`, `COL` etc. stay undecoded (counted as `unknownTokens`),
   and `bldg_desc_raw` is always kept. After changing the decoder run `piu:redecode-bldg-desc` (no
   re-import). `BLDG_CLASS` stays raw (no official decode table located).
+- **Owner-approved decoder extensions (2026-11-27):** (A) plain-word styles
+  (`COLONIAL`, `RANCH`, `SPLIT LEVEL`, `CAPE COD`, ... see `STYLE_WORDS`; non-spec
+  styles get 2-letter codes in `EXTRA_STYLES`); (B) reversed codes
+  `{exterior}{stories}S` in their strict form only (`F2S`, `B2S`, `F1S`; not
+  `F1G1S`/`F1SFG1`); (C) `parcels.dwelling_type` (`DwellingType`) from words
+  like `SFD`, `1 FAMILY`, `TOWNHOUSE`, `CONDO` (never for OFFICE/COMMON...).
+  Single-letter style codes only count inside a building code. Still
+  undecoded on purpose: `1 F`, `2 F`, `1F`, `F`, `BH`, `TH`, `COL`, `FR HSE`.
 - **Style is usually absent in Morris** (most homes are just `1SF`/`2SF`), so
   lookalike matching (relay 02) must not depend on style alone.
 - `centroid` and `site_zip` are set by the `parcels_set_derived` trigger as a
@@ -108,8 +116,8 @@ Relay plan: 01 foundation + NJ parcel import (**done**, see `docs/relay-01-close
   ZIP, 0 degraded outlines. Details: `docs/relay-01-closeout.md`.
 - **Decode gap:** residential stories+exterior 60.5%, **style 13%**. Many
   counties write plain words (`COLONIAL`, `RANCH`, `CAPE COD`, `SFD`, `CONDO`)
-  or reversed codes (`F2S`, `B2S`). Extending the decoder needs owner sign-off
-  (proposal in the close-out doc). **Relay 02 lookalike matching must not
+  or reversed codes (`F2S`, `B2S`); A/B/C above (approved 2026-11-27) cover the
+  common ones. **Relay 02 lookalike matching must not
   depend on style**: use year built, lot size, stories/exterior, value
   within the municipality, proximity; style only as a booster.
 

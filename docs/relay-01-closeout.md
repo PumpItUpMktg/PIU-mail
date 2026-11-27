@@ -57,7 +57,7 @@ Many other counties write `BLDG_DESC` as plain words or in another order
 - **#8:** one source request per page job, with narrowing done across queued
   jobs. This finally cleared Ocean's 216,000 stretch with every parcel intact.
 
-## Decode gap: proposal for the owner (not built)
+## Decode gap: A, B and C approved by the owner and built (2026-11-27)
 
 Style is known for only **13% of homes**. The most common undecoded values
 are plain words or other code orders, not the `{stories}S{exterior}…` format:
@@ -77,9 +77,11 @@ are plain words or other code orders, not the `{stories}S{exterior}…` format:
 | `BH` | 13,349 | unknown | Leave undecoded unless the owner knows it |
 | `VACANT LAND`, `OPEN SPACE`, `COMMON ELEMENTS`, `COMMON AREA` | — | not buildings | Leave undecoded (correct) |
 
-A, B and C would each be a decoder change plus `piu:redecode-bldg-desc`
-(minutes, no re-import). They need owner sign-off because they go beyond the
-spec's code table.
+**Approved and built on 2026-11-27.** Run `php artisan migrate --force`
+(this adds `parcels.dwelling_type`), then `php artisan piu:redecode-bldg-desc`,
+to apply A, B and C to the stored parcels. No re-import is needed. `FR HSE`,
+`F1G1S` and `F1SFG1` stay undecoded: they weren't approved, or no clear rule
+was found.
 
 ### Product implication for relay 02
 

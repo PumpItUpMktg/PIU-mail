@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Parcels\Tables;
 
+use App\Enums\DwellingType;
 use App\Models\Parcel;
 use App\Parcels\BldgDescDecoder;
 use Filament\Actions\ViewAction;
@@ -44,7 +45,8 @@ class ParcelsTable
                 SelectFilter::make('county')->options(fn () => self::distinct('county'))->searchable(),
                 SelectFilter::make('municipality')->options(fn () => self::distinct('municipality'))->searchable(),
                 SelectFilter::make('prop_class')->label('Property class')->options(fn () => self::distinct('prop_class')),
-                SelectFilter::make('style_code')->label('Style')->options(BldgDescDecoder::STYLES),
+                SelectFilter::make('style_code')->label('Style')->options(BldgDescDecoder::STYLES + BldgDescDecoder::EXTRA_STYLES),
+                SelectFilter::make('dwelling_type')->label('Dwelling type')->options(collect(DwellingType::cases())->mapWithKeys(fn ($c) => [$c->value => $c->label()])->all()),
                 TernaryFilter::make('owner_occupied')->label('Owner-occupied'),
                 self::range('yr_constr', 'Year built', 'numeric'),
                 self::range('calc_acre', 'Acreage', 'decimal'),
