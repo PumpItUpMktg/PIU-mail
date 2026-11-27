@@ -2,25 +2,31 @@
 
 namespace App\Parcels;
 
+use App\Enums\DwellingType;
 use App\Enums\GarageType;
 
 /**
- * A (possibly partial) BLDG_DESC decode. Stories and exterior are always
- * present; style and garage only when the source states them in a documented
- * form. unknownTokens counts parts that were left undecoded (kept in the raw
- * value), so "complete" means every part of the code was understood.
+ * A (possibly partial) BLDG_DESC decode. Each part is set only when the
+ * source states it in a documented or owner-approved form:
+ *  - stories + exterior from the {stories}S{exterior} code (or the reversed
+ *    {exterior}{stories}S form, e.g. F2S);
+ *  - style from a style code or a plain word (COLONIAL, CAPE COD...);
+ *  - garage from {n}AG/{n}UG/AG/UG/G{n}/G;
+ *  - dwelling type from plain words (SFD, 1 FAMILY, TOWNHOUSE, CONDO...).
+ * unknownTokens counts parts left undecoded (the raw value is always kept).
  */
 final readonly class DecodedBldgDesc
 {
     public function __construct(
-        public float $stories,
-        public string $exteriorCode,
-        public string $exterior,
+        public ?float $stories = null,
+        public ?string $exteriorCode = null,
+        public ?string $exterior = null,
         public ?string $styleCode = null,
         public ?string $style = null,
         public ?int $garageCars = null,
         public ?GarageType $garageType = null,
         public int $unknownTokens = 0,
+        public ?DwellingType $dwellingType = null,
     ) {}
 
     public function complete(): bool
@@ -28,20 +34,20 @@ final readonly class DecodedBldgDesc
         return $this->unknownTokens === 0;
     }
 
-    /** "1.5-story stone Colonial, 2-car attached garage" */
+    /** "1.5-story stone Colonial, 2-car attached garage", "Cape Cod", "Condo" */
     public function display(): string
     {
-        $text = $this->buildingDisplay();
+        $parts = array_filter([$this->buildingDisplay(), $this->garageDisplay()]);
 
-        if ($garage = $this->garageDisplay()) {
-            $text .= ', '.$garage;
+        if ($parts === [] && $this->dwellingType !== null) {
+            return $this->dwellingType->label();
         }
 
-        return $text;
+        return implode(', ', $parts);
     }
 
-    /** "2-story frame Colonial", or "2-story frame" when no style is stated. */
-    public function buildingDisplay(): string
+    /** "2-story frame Colonial", "2-story frame", or just "Colonial". */
+    public function buildingDisplay(): ?string
     {
         return self::building($this->stories, $this->exterior, $this->style);
     }
@@ -51,9 +57,13 @@ final readonly class DecodedBldgDesc
         return self::garage($this->garageCars, $this->garageType);
     }
 
-    public static function building(float $stories, string $exterior, ?string $style): string
+    public static function building(?float $stories, ?string $exterior, ?string $style): ?string
     {
-        return trim(sprintf('%s-story %s %s', self::formatStories($stories), strtolower($exterior), $style ?? ''));
+        if ($stories !== null && $exterior !== null) {
+            return trim(sprintf('%s-story %s %s', self::formatStories($stories), strtolower($exterior), $style ?? ''));
+        }
+
+        return $style;
     }
 
     /** "2-car attached garage", "attached garage" (no count), "2-car garage" (attachment not stated). */

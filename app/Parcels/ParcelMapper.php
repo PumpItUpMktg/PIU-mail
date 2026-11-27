@@ -59,6 +59,7 @@ final class ParcelMapper
             'style' => $decoded?->style,
             'garage_cars' => $decoded?->garageCars,
             'garage_type' => $decoded?->garageType?->value,
+            'dwelling_type' => $decoded?->dwellingType?->value,
             'bldg_class' => SourceValues::text($attrs['BLDG_CLASS'] ?? null),
             'land_desc_raw' => SourceValues::text($attrs['LAND_DESC'] ?? null),
             'calc_acre' => SourceValues::decimal($attrs['CALC_ACRE'] ?? null),

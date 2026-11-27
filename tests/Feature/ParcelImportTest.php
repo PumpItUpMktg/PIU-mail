@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\CountyStatus;
+use App\Enums\DwellingType;
 use App\Enums\ImportStatus;
 use App\Jobs\FinalizeCountyImport;
 use App\Jobs\ImportParcelPage;
@@ -513,4 +514,18 @@ test('after a smaller page succeeds, the next page doubles back toward full size
     app()->call([new ImportParcelPage($report->id, 'MORRIS', 0, 1), 'handle']);
 
     Queue::assertPushed(ImportParcelPage::class, fn ($j) => $j->offset === 1 && $j->limit === 2);
+});
+
+test('redecode fills dwelling type and word styles on stored parcels', function () {
+    importMorris();
+    $p = Parcel::where('pams_pin', '1427_11_1')->first();
+    DB::table('parcels')->where('id', $p->id)->update(['bldg_desc_raw' => 'COLONIAL 1 FAMILY']);
+
+    $this->artisan('piu:redecode-bldg-desc', ['--county' => 'MORRIS'])->assertSuccessful();
+
+    $p->refresh();
+    expect($p->style)->toBe('Colonial')
+        ->and($p->stories)->toBeNull()
+        ->and($p->dwelling_type)->toBe(DwellingType::SingleFamily)
+        ->and($p->summary())->toContain('Colonial · Single-family');
 });

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DwellingType;
 use App\Enums\GarageType;
 use App\Parcels\DecodedBldgDesc;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,6 +34,7 @@ class Parcel extends Model
             'stories' => 'float',
             'garage_cars' => 'integer',
             'garage_type' => GarageType::class,
+            'dwelling_type' => DwellingType::class,
             'calc_acre' => 'float',
             'land_val' => 'integer',
             'imprvt_val' => 'integer',
@@ -84,8 +86,12 @@ class Parcel extends Model
             $parts[] = 'Built '.$this->yr_constr;
         }
 
-        if ($this->stories !== null && $this->exterior !== null) {
-            $parts[] = DecodedBldgDesc::building($this->stories, $this->exterior, $this->style);
+        if ($building = DecodedBldgDesc::building($this->stories, $this->exterior, $this->style)) {
+            $parts[] = $building;
+        }
+
+        if ($this->dwelling_type !== null) {
+            $parts[] = $this->dwelling_type->label();
         }
 
         if ($garage = DecodedBldgDesc::garage($this->garage_cars, $this->garage_type)) {

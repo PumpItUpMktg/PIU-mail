@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DwellingType;
 use App\Enums\GarageType;
 use App\Parcels\BldgDescDecoder;
 
@@ -46,7 +47,11 @@ test('decodes BLDG_DESC codes', function (string $raw, float $stories, string $e
 
 test('never guesses: undecodable values return null', function (?string $raw) {
     expect((new BldgDescDecoder)->decode($raw))->toBeNull();
-})->with([null, '', 'NOT A CODE', 'SFL', '2FL', '2SQL', '2SFLL', '0SFL', '2SSTQ', 'CONDO', 'TYPE A', 'TYPE B']);
+})->with([null, '', 'NOT A CODE', 'SFL', '2FL', '2SQL', '2SFLL', '0SFL', '2SSTQ', 'TYPE A', 'TYPE B',
+    // Ambiguous or unapproved: F could be frame or family, BH/TH/COL/FR HSE unknown.
+    '1 F', '2 F', '1F', 'F', 'BH', 'TH', 'NEW TH', 'COL', 'FR HSE', 'CAPE', 'F1G1S', 'F1SFG1',
+    // Not buildings / not dwellings.
+    'VACANT LAND', 'OPEN SPACE', 'COMMON ELEMENTS', 'COMMON AREA', 'OFFICE CONDO']);
 
 // The 60 most common BLDG_DESC values from the live Morris County import
 // (2026-11-04), as `piu:parcel-stats --sample-bldg=60` listed them, with row
@@ -64,7 +69,7 @@ dataset('morris', [
     ['2SF 2AG', '2-story frame, 2-car attached garage', 0],            // 2740
     ['1S F', '1-story frame', 0],                                      // 2613
     ['1.5SF', '1.5-story frame', 0],                                   // 2337
-    ['CONDO', null, null],                                             // 2183
+    ['CONDO', 'Condo', 0],                                             // 2183
     ['2SFG2', '2-story frame, 2-car garage', 0],                                     // 1722
     ['2SF-L-2AG', '2-story frame Colonial, 2-car attached garage', 0], // 1684
     ['1S F G1', '1-story frame, 1-car garage', 0],                                   // 1475
@@ -96,7 +101,7 @@ dataset('morris', [
     ['1SF 2', '1-story frame Bi-level', 0],                            // 424
     ['1SFR', '1-story frame Rancher', 0],                              // 399
     ['2SF-L-3AG POOL', '2-story frame Colonial, 3-car attached garage', 1], // 393
-    ['2S F 1FAM', '2-story frame', 1],                                 // 390
+    ['2S F 1FAM', '2-story frame', 0],                                 // 390 (+ single-family)
     ['1SF OB', '1-story frame', 1],                                    // 376
     ['2SF G2 P', '2-story frame, 2-car garage', 1],                                  // 374
     ['2SF L AG', '2-story frame Colonial, attached garage', 0],        // 365
@@ -159,4 +164,63 @@ test('G garages: count known, attachment unknown', function () {
 
 test('semicolons and commas separate parts too', function () {
     expect((new BldgDescDecoder)->decode('2SF;L,2AG')->display())->toBe('2-story frame Colonial, 2-car attached garage');
+});
+
+// The 25 most common statewide values that the pre-2026-11-27 decoder left
+// fully undecoded (production stats, 2026-11-27), with the owner-approved
+// A/B/C decodes. null = stays undecoded on purpose.
+dataset('statewide', [
+    ['CONDO', null, DwellingType::Condo],                  // 22,537
+    ['SFD', null, DwellingType::SingleFamily],             // 16,051
+    ['BH', null, null],                                    // 13,349 unknown meaning
+    ['COLONIAL', 'Colonial', null],                        // 10,900
+    ['F2S', '2-story frame', null],                        // 9,938
+    ['RANCH', 'Rancher', null],                            // 8,746
+    ['2 F', null, null],                                   // 8,467 ambiguous
+    ['1-FAM', null, DwellingType::SingleFamily],           // 7,734
+    ['2 FAMILY', null, DwellingType::TwoFamily],           // 7,682
+    ['1 F', null, null],                                   // 7,538 ambiguous
+    ['B2S', '2-story brick', null],                        // 7,473
+    ['FR HSE', null, null],                                // 7,241 not approved
+    ['VACANT LAND', null, null],                           // 7,177
+    ['1 FAMILY', null, DwellingType::SingleFamily],        // 5,607
+    ['F1G1S', null, null],                                 // 5,060 no clear rule
+    ['TOWNHOUSE', null, DwellingType::Townhouse],          // 5,039
+    ['F1S', '1-story frame', null],                        // 4,961
+    ['F', null, null],                                     // 4,427 ambiguous
+    ['COMMON ELEMENTS', null, null],                       // 4,255
+    ['F1SFG1', null, null],                                // 4,245 no clear rule
+    ['SPLIT LEVEL', 'Split level', null],                  // 4,014
+    ['1F', null, null],                                    // 3,865 ambiguous
+    ['OPEN SPACE', null, null],                            // 3,573
+    ['COMMON AREA', null, null],                           // 3,488
+    ['CAPE COD', 'Cape Cod', null],                        // 3,484
+]);
+
+test('decodes the most common statewide plain-word and reversed values', function (string $raw, ?string $building, ?DwellingType $dwelling) {
+    $d = (new BldgDescDecoder)->decode($raw);
+
+    if ($building === null && $dwelling === null) {
+        expect($d)->toBeNull();
+
+        return;
+    }
+
+    expect($d)->not->toBeNull()
+        ->and($d->buildingDisplay())->toBe($building)
+        ->and($d->dwellingType)->toBe($dwelling)
+        ->and($d->unknownTokens)->toBe(0);
+})->with('statewide');
+
+test('word styles, reversed codes and dwelling types combine with codes', function () {
+    $dec = new BldgDescDecoder;
+
+    expect($dec->decode('2SF COLONIAL')->display())->toBe('2-story frame Colonial')
+        ->and($dec->decode('F2S G2')->display())->toBe('2-story frame, 2-car garage')
+        ->and($dec->decode('SPLIT-LEVEL')->style)->toBe('Split level')
+        ->and($dec->decode('RAISED RANCH')->styleCode)->toBe('Z')
+        ->and($dec->decode('CAPE COD')->styleCode)->toBe('CC')
+        ->and($dec->decode('COLONIAL 2 FAMILY')->dwellingType)->toBe(DwellingType::TwoFamily)
+        ->and($dec->decode('TWNHSE CONDO')->dwellingType)->toBe(DwellingType::Townhouse)
+        ->and($dec->decode('CONDO')->display())->toBe('Condo');
 });

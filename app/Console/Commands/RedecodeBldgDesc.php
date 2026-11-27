@@ -21,7 +21,7 @@ class RedecodeBldgDesc extends Command
 
     protected $description = 'Re-decode BLDG_DESC for imported parcels with the current decoder (no re-import)';
 
-    private const COLUMNS = ['stories', 'exterior_code', 'exterior', 'style_code', 'style', 'garage_cars', 'garage_type'];
+    private const COLUMNS = ['stories', 'exterior_code', 'exterior', 'style_code', 'style', 'garage_cars', 'garage_type', 'dwelling_type'];
 
     public function handle(BldgDescDecoder $decoder): int
     {
@@ -45,7 +45,8 @@ class RedecodeBldgDesc extends Command
                 style_code varchar(2),
                 style varchar(255),
                 garage_cars smallint,
-                garage_type varchar(16)
+                garage_type varchar(16),
+                dwelling_type varchar(24)
             )
             SQL);
 
@@ -62,6 +63,7 @@ class RedecodeBldgDesc extends Command
                     'style' => $d?->style,
                     'garage_cars' => $d?->garageCars,
                     'garage_type' => $d?->garageType?->value,
+                    'dwelling_type' => $d?->dwellingType?->value,
                 ];
             })->values()->all());
         }

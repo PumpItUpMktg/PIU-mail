@@ -29,7 +29,8 @@ class ParcelInfolist
             Section::make('Building')->columns(4)->schema([
                 $t('prop_class', 'Property class'), $t('prop_use', 'Property use'), $t('dwell_units', 'Dwellings'), $t('comm_units', 'Comm. dwellings'),
                 $t('yr_constr', 'Year built'), $t('bldg_desc_raw', 'BLDG_DESC'), $t('stories'), $t('exterior'),
-                $t('style'), $t('garage_cars', 'Garage cars'), $t('garage_type', 'Garage type'), $t('bldg_class', 'BLDG_CLASS (raw)'),
+                $t('style'), $t('dwelling_type', 'Dwelling type')->formatStateUsing(fn ($state) => $state?->label()),
+                $t('garage_cars', 'Garage cars'), $t('garage_type', 'Garage type'), $t('bldg_class', 'BLDG_CLASS (raw)'),
                 IconEntry::make('owner_occupied')->boolean()->placeholder('Unknown'),
             ]),
             Section::make('Land & values')
